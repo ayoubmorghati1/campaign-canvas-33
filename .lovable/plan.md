@@ -1,31 +1,35 @@
-## What I'll remove (nothing real behind it)
+## Add "How It Was Built" section to the landing page
 
-**Top nav (`SiteNav`)**
-- "Sign in" link → no auth exists
-- "Pricing" link → pricing page doesn't exist
-- "Customers" link → removing the testimonial it points to
+Insert a new section in `src/routes/index.tsx` between `InsideStudio` and `FinalCTA`, matching the existing premium editorial aesthetic (warm paper background, ink type, violet/lime/clay accents, GlassCard, Chip, SectionLabel, MotionFadeUp primitives).
 
-**Landing page sections (`src/routes/index.tsx`)**
-- `PricingTeaser` — fake tiers/prices
-- `LogoCloud` — invented brand names ("NORDH", "Atelier 9", "kinto"…)
-- `Testimonial` — fabricated quote from "Amelia Marsh, NORDH"
-- Hero stat strip ("2 min / 12+ / 96% avg DNA match") — invented numbers
-- "See pricing" button in the `FinalCTA`
+### Structure
 
-**Footer (`SiteFooter`)**
-- "SOC 2 · in progress" + "v 0.9 · beta" pills — not true
-- Resources column (Changelog / Playbook / Templates / API / Status) — none exist
-- Company column (About / Customers / Careers / Press / Contact) — none exist
-- Privacy / Terms / Security links — no pages
-- Keep: logo, tagline, and a slim Product column (Studio, New campaign) that links to real routes
+```text
+<HowItWasBuilt />
+  ├── Section header (SectionLabel + serif title + muted subtitle)
+  ├── 2×2 grid of GlassCard
+  │   ├── Card 1 — Product Thinking (violet accent chip)
+  │   ├── Card 2 — AI Workflow (two-column list, footer note bar)
+  │   ├── Card 3 — One Decision I Overrode (clay accent chip)
+  │   └── Card 4 — Time Breakdown (3 stat tiles + caption)
+  ├── Tools Used (3 elegant cards: ChatGPT, Lovable, GitHub)
+  └── Explore the Code (GitHub repo CTA card → ayoubmorghati1/campaign-canvas-33)
+```
 
-## What stays (everything works)
+### Visual rules
 
-Hero · How it works · AI Creative Director · Campaign DNA · Explain this campaign · Inspiration Inspector · Multi-platform export · Inside the studio · Final CTA → "Open the studio"
+- Reuse existing primitives from `src/components/studio/primitives.tsx`: `GlassCard`, `Chip`, `SectionLabel`, `MotionFadeUp`, `PrimaryButton`. No new color tokens.
+- Typography: serif headings (`font-serif`), mono for labels/stats accent, sans body — same scale as `InsideStudio`/`FeatureExport`.
+- Cards: rounded-3xl, white/70 glass, soft shadow, subtle border, gentle hover lift (`hover:-translate-y-0.5 transition`).
+- Stat tiles in Card 4: large serif number, mono uppercase label below.
+- Two-column list in Card 2 uses a thin vertical divider on `md:` and stacks on mobile; footer note is a `bg-ink/[0.04]` pill strip.
+- Tools row: 3 equal cards with brand-style monogram square, role bullet list, muted border.
+- Repo CTA: full-width GlassCard, GitHub `lucide-react` icon in an ink square, title + subtitle left, `PrimaryButton` right opening the GitHub URL in a new tab (`target="_blank" rel="noreferrer"`).
+- Grid responsive: `grid-cols-1 md:grid-cols-2` for the 2×2; `grid-cols-1 sm:grid-cols-3` for tools and stats.
+- All entrance animations via `MotionFadeUp` with staggered delays, matching neighboring sections.
 
-## Files touched
+### Files
 
-- `src/routes/index.tsx` — delete `PricingTeaser`, `LogoCloud`, `Testimonial`, hero stat block, "See pricing" button, and their imports
-- `src/components/studio/SiteNav.tsx` — remove Sign in / Pricing / Customers nav items; rewrite footer columns to real links only
+- `src/routes/index.tsx` — add `HowItWasBuilt` function component and render it between `<InsideStudio />` and `<FinalCTA />`. Add `Github` import from `lucide-react`. No other files change.
 
-No backend or studio-app changes — those already work.
+No business logic, no new routes, no backend work.
