@@ -1,33 +1,46 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
+  Activity,
+  Crop,
   Copy,
   Download,
-  Heart,
+  FileText,
+  ImageIcon,
   Layers,
   Loader2,
   MessageCircle,
+  RefreshCcw,
   RotateCw,
   Send,
   Share2,
   Sparkles,
+  Upload,
   Wand2,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Chip, GlassCard, SectionLabel, StatusDot } from "@/components/studio/primitives";
 import {
+  analyzeCampaign,
   directorChat,
   generateVariants,
   getCampaign,
   listDirectorMessages,
+  reframeVariant,
   regenerateVariant,
+  updateBrief,
 } from "@/lib/campaigns.functions";
 import { cn } from "@/lib/utils";
 
+const tabSchema = z.object({ tab: z.enum(["variants", "brief", "activity"]).optional() });
+type Tab = "variants" | "brief" | "activity";
+
 export const Route = createFileRoute("/studio/c/$id")({
+  validateSearch: (s) => tabSchema.parse(s),
   head: ({ params }) => ({
     meta: [
       { title: `Campaign · Campaign Studio` },
@@ -39,9 +52,17 @@ export const Route = createFileRoute("/studio/c/$id")({
 
 type CampaignData = Awaited<ReturnType<typeof getCampaign>>;
 type Variant = CampaignData["variants"][number];
+type Asset = CampaignData["assets"][number];
+type Brief = NonNullable<CampaignData["brief"]>;
 
 function CampaignWorkspace() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const tab: Tab = search.tab ?? "variants";
+  const setTab = (t: Tab) =>
+    navigate({ to: "/studio/c/$id", params: { id }, search: { tab: t }, replace: true });
+
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["campaign", id],
@@ -66,7 +87,7 @@ function CampaignWorkspace() {
     );
   }
 
-  const { campaign, brief, variants } = data;
+  const { campaign, brief, variants, assets } = data;
   const variant = variants.find((v) => v.id === selectedId) ?? variants[0] ?? null;
   const busy = campaign.status === "generating" || campaign.status === "analyzing";
 
@@ -117,43 +138,58 @@ function CampaignWorkspace() {
           </div>
         </div>
 
-        {/* Tabs (decorative for now) */}
+        {/* Tabs */}
         <div className="mt-8 flex items-center gap-1 border-b border-border px-8">
-          {["Variants", "Brief", "Activity"].map((t, i) => (
+          {([
+            { id: "variants", label: "Variants", icon: <ImageIcon className="size-3.5" /> },
+            { id: "brief", label: "Brief", icon: <FileText className="size-3.5" /> },
+            { id: "activity", label: "Activity", icon: <Activity className="size-3.5" /> },
+          ] as const).map((t) => (
             <button
-              key={t}
+              key={t.id}
+              onClick={() => setTab(t.id)}
               className={cn(
-                "relative px-4 py-3 text-sm transition-colors",
-                i === 0 ? "text-ink" : "text-muted-foreground hover:text-ink",
+                "relative flex items-center gap-2 px-4 py-3 text-sm transition-colors",
+                tab === t.id ? "text-ink" : "text-muted-foreground hover:text-ink",
               )}
             >
-              {t}
-              {i === 0 && <span className="absolute inset-x-3 -bottom-px h-px bg-ink" />}
+              {t.icon}
+              {t.label}
+              {tab === t.id && <span className="absolute inset-x-3 -bottom-px h-px bg-ink" />}
             </button>
           ))}
         </div>
 
-        {/* Variant grid */}
-        {busy && variants.length === 0 ? (
-          <GeneratingPlaceholder count={(campaign.platforms?.length ?? 1) * 3} />
-        ) : variants.length === 0 ? (
-          <div className="grid place-items-center px-8 py-20 text-center">
-            <div>
-              <div className="font-serif text-2xl italic text-muted-foreground">No variants yet.</div>
-              <button
-                onClick={() => regen.mutate()}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper"
-              >
-                <Wand2 className="size-4 text-lime" /> Generate
-              </button>
+        {tab === "variants" && (
+          busy && variants.length === 0 ? (
+            <GeneratingPlaceholder count={(campaign.platforms?.length ?? 1) * 3} />
+          ) : variants.length === 0 ? (
+            <div className="grid place-items-center px-8 py-20 text-center">
+              <div>
+                <div className="font-serif text-2xl italic text-muted-foreground">No variants yet.</div>
+                <button
+                  onClick={() => regen.mutate()}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper"
+                >
+                  <Wand2 className="size-4 text-lime" /> Generate
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-5 p-8 xl:grid-cols-3">
-            {variants.map((v, idx) => (
-              <VariantCard key={v.id} v={v} idx={idx} active={v.id === variant?.id} onSelect={() => setSelectedId(v.id)} />
-            ))}
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-5 p-8 xl:grid-cols-3">
+              {variants.map((v, idx) => (
+                <VariantCard key={v.id} v={v} idx={idx} active={v.id === variant?.id} onSelect={() => setSelectedId(v.id)} />
+              ))}
+            </div>
+          )
+        )}
+
+        {tab === "brief" && (
+          <BriefTab campaignId={id} brief={brief} onSaved={() => qc.invalidateQueries({ queryKey: ["campaign", id] })} />
+        )}
+
+        {tab === "activity" && (
+          <ActivityTab campaignId={id} campaign={campaign} assets={assets} variants={variants} />
         )}
       </section>
 
