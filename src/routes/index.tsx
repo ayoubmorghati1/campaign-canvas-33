@@ -657,9 +657,6 @@ function FinalCTA() {
             <Link to="/studio" className="inline-flex items-center gap-2 rounded-full bg-lime px-6 py-3.5 text-sm font-medium text-ink shadow-glow transition-all hover:opacity-90">
               Open the studio <ArrowRight className="size-4" />
             </Link>
-            <Link to="/pricing" className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-medium text-paper backdrop-blur hover:bg-white/10">
-              See pricing
-            </Link>
           </div>
         </div>
       </div>
