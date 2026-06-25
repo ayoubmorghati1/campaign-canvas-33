@@ -180,7 +180,7 @@ function StudioTopbar() {
 function buildCrumbs(pathname: string): { label: string; to?: string }[] {
   if (pathname === "/studio") return [{ label: "NORDH" }, { label: "Projects" }];
   if (pathname === "/studio/new") return [{ label: "NORDH", to: "/studio" }, { label: "New campaign" }];
-  if (pathname.startsWith("/studio/c/")) return [{ label: "NORDH", to: "/studio" }, { label: "Morning Ritual" }];
+  if (pathname.startsWith("/studio/c/")) return [{ label: "NORDH", to: "/studio" }, { label: "Campaign" }];
   if (pathname === "/studio/brand") return [{ label: "NORDH", to: "/studio" }, { label: "Brand Kits" }];
   if (pathname === "/studio/archive") return [{ label: "NORDH", to: "/studio" }, { label: "Explorations" }];
   if (pathname === "/studio/exports") return [{ label: "NORDH", to: "/studio" }, { label: "Exports" }];
