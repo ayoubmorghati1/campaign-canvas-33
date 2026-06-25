@@ -188,7 +188,7 @@ function CampaignWorkspace() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 p-8 md:grid-cols-3 xl:grid-cols-4">
+            <div className="columns-1 gap-6 p-8 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-6 [&>*]:break-inside-avoid">
               {roots.map((v, idx) => (
                 <VariantCard
                   key={v.id}
