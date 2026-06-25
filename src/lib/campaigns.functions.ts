@@ -357,7 +357,7 @@ BRIEF
 - Audience: ${brief.audience}
 - Position: ${brief.position}
 - Mood: ${brief.mood}
-- Palette: ${brief.color_strategy} (${(brief.palette ?? []).join(", ")})
+- Palette: ${brief.color_strategy} (${(Array.isArray(brief.palette) ? brief.palette : []).join(", ")})
 - Visual direction: ${brief.visual_direction}
 - Notes: ${brief.notes}
 
