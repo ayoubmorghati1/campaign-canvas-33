@@ -414,6 +414,8 @@ function Inspector({
           ))}
         </div>
       </div>
+
+      <ReframeBlock variant={variant} onRefresh={onRefresh} />
     </>
   );
 }
@@ -503,5 +505,390 @@ function DirectorPanel({ campaignId }: { campaignId: string }) {
   );
 }
 
-// Suppress unused warnings for icons kept for visual consistency
-void Heart;
+/* ----------------------------- Reframe block ----------------------------- */
+
+const ASPECT_OPTIONS = ["1:1", "4:5", "9:16", "16:9", "2:3"] as const;
+type Aspect = (typeof ASPECT_OPTIONS)[number];
+
+const PLATFORM_PRESETS: Array<{ label: string; aspect: Aspect }> = [
+  { label: "IG Feed", aspect: "4:5" },
+  { label: "IG Story", aspect: "9:16" },
+  { label: "Reels", aspect: "9:16" },
+  { label: "TikTok", aspect: "9:16" },
+  { label: "Pinterest", aspect: "2:3" },
+  { label: "LinkedIn", aspect: "1:1" },
+  { label: "X", aspect: "16:9" },
+];
+
+function ReframeBlock({ variant, onRefresh }: { variant: Variant; onRefresh: () => void }) {
+  const [platform, setPlatform] = useState<string>(PLATFORM_PRESETS[0].label);
+  const [aspect, setAspect] = useState<Aspect>(PLATFORM_PRESETS[0].aspect);
+
+  const reframe = useMutation({
+    mutationFn: () => reframeVariant({ data: { variantId: variant.id, platform, aspect } }),
+    onSuccess: () => {
+      toast.success(`Reframed for ${platform} (${aspect})`);
+      onRefresh();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Reframe failed"),
+  });
+
+  return (
+    <div className="border-b border-border p-5">
+      <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <Crop className="size-3" /> Reframe for another format
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {PLATFORM_PRESETS.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => {
+              setPlatform(p.label);
+              setAspect(p.aspect);
+            }}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+              platform === p.label
+                ? "border-ink bg-ink text-paper"
+                : "border-border bg-white text-ink hover:border-ink/30",
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {ASPECT_OPTIONS.map((a) => (
+          <button
+            key={a}
+            onClick={() => setAspect(a)}
+            className={cn(
+              "rounded-md border px-2 py-1 font-mono text-[10px] tracking-wider transition-colors",
+              aspect === a
+                ? "border-violet bg-violet/10 text-violet"
+                : "border-border bg-white text-muted-foreground hover:text-ink",
+            )}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => reframe.mutate()}
+        disabled={reframe.isPending}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-3 py-2 text-xs font-medium text-paper disabled:opacity-50"
+      >
+        {reframe.isPending ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" /> Reframing…
+          </>
+        ) : (
+          <>
+            <Crop className="size-3.5 text-lime" /> Create {aspect} for {platform}
+          </>
+        )}
+      </button>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Adds a new sibling variant. Original stays untouched.
+      </p>
+    </div>
+  );
+}
+
+/* ----------------------------- Brief tab ----------------------------- */
+
+function BriefTab({
+  campaignId,
+  brief,
+  onSaved,
+}: {
+  campaignId: string;
+  brief: Brief | null;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState({
+    goal: brief?.goal ?? "",
+    audience: brief?.audience ?? "",
+    position: brief?.position ?? "",
+    mood: brief?.mood ?? "",
+    color_strategy: brief?.color_strategy ?? "",
+    visual_direction: brief?.visual_direction ?? "",
+    notes: brief?.notes ?? "",
+  });
+
+  useEffect(() => {
+    setDraft({
+      goal: brief?.goal ?? "",
+      audience: brief?.audience ?? "",
+      position: brief?.position ?? "",
+      mood: brief?.mood ?? "",
+      color_strategy: brief?.color_strategy ?? "",
+      visual_direction: brief?.visual_direction ?? "",
+      notes: brief?.notes ?? "",
+    });
+  }, [brief]);
+
+  const save = useMutation({
+    mutationFn: () => updateBrief({ data: { campaignId, patch: draft } }),
+    onSuccess: () => {
+      toast.success("Brief saved");
+      onSaved();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Save failed"),
+  });
+
+  const regen = useMutation({
+    mutationFn: () => analyzeCampaign({ data: { id: campaignId } }),
+    onSuccess: () => {
+      toast.success("Brief regenerated");
+      onSaved();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Regenerate failed"),
+  });
+
+  if (!brief) {
+    return (
+      <div className="grid place-items-center px-8 py-20 text-center">
+        <div>
+          <div className="font-serif text-2xl italic text-muted-foreground">No brief yet.</div>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            Upload product photos and references, then run the analysis.
+          </p>
+          <button
+            onClick={() => regen.mutate()}
+            disabled={regen.isPending}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-50"
+          >
+            {regen.isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-lime" />}
+            Run analysis
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const palette = (brief.palette as string[] | null) ?? [];
+  const dna = (brief.references_dna as Array<{ label: string; weight: number }> | null) ?? [];
+
+  const Field = ({
+    label,
+    value,
+    onChange,
+    multiline,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    multiline?: boolean;
+  }) => (
+    <label className="block">
+      <div className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm focus:border-ink focus:outline-none"
+        />
+      )}
+    </label>
+  );
+
+  return (
+    <div className="max-w-3xl px-8 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <SectionLabel>Creative brief</SectionLabel>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => regen.mutate()}
+            disabled={regen.isPending}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-xs disabled:opacity-50"
+          >
+            {regen.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCcw className="size-3.5" />}
+            Regenerate
+          </button>
+          <button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-paper disabled:opacity-50"
+          >
+            {save.isPending ? <Loader2 className="size-3.5 animate-spin" /> : "Save brief"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-5">
+        <Field label="Goal" value={draft.goal} onChange={(v) => setDraft((s) => ({ ...s, goal: v }))} />
+        <Field label="Audience" value={draft.audience} onChange={(v) => setDraft((s) => ({ ...s, audience: v }))} />
+        <Field label="Position" value={draft.position} onChange={(v) => setDraft((s) => ({ ...s, position: v }))} />
+        <Field label="Mood" value={draft.mood} onChange={(v) => setDraft((s) => ({ ...s, mood: v }))} />
+        <div className="col-span-2">
+          <Field
+            label="Color strategy"
+            value={draft.color_strategy}
+            onChange={(v) => setDraft((s) => ({ ...s, color_strategy: v }))}
+          />
+        </div>
+        <div className="col-span-2">
+          <Field
+            label="Visual direction"
+            value={draft.visual_direction}
+            onChange={(v) => setDraft((s) => ({ ...s, visual_direction: v }))}
+            multiline
+          />
+        </div>
+        <div className="col-span-2">
+          <Field label="Notes" value={draft.notes} onChange={(v) => setDraft((s) => ({ ...s, notes: v }))} multiline />
+        </div>
+      </div>
+
+      {palette.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Palette</div>
+          <div className="flex flex-wrap gap-2">
+            {palette.map((hex) => (
+              <div key={hex} className="flex items-center gap-2 rounded-full border border-border bg-white px-2 py-1 text-xs">
+                <span className="size-4 rounded-full border border-black/10" style={{ background: hex }} />
+                <span className="font-mono">{hex}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dna.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Reference DNA</div>
+          <div className="space-y-2">
+            {dna.map((d) => (
+              <div key={d.label} className="text-sm">
+                <div className="flex items-center justify-between">
+                  <span>{d.label}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{d.weight}%</span>
+                </div>
+                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-ink" style={{ width: `${d.weight}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------- Activity tab ----------------------------- */
+
+type ActivityItem = {
+  id: string;
+  ts: string;
+  kind: "campaign" | "asset" | "variant" | "message";
+  title: string;
+  meta?: string;
+  thumb?: string | null;
+};
+
+function ActivityTab({
+  campaignId,
+  campaign,
+  assets,
+  variants,
+}: {
+  campaignId: string;
+  campaign: CampaignData["campaign"];
+  assets: Asset[];
+  variants: Variant[];
+}) {
+  const { data: messages = [] } = useQuery({
+    queryKey: ["director", campaignId],
+    queryFn: () => listDirectorMessages({ data: { id: campaignId } }),
+  });
+
+  const items = useMemo<ActivityItem[]>(() => {
+    const out: ActivityItem[] = [];
+    out.push({
+      id: `c-${campaign.id}`,
+      ts: campaign.created_at,
+      kind: "campaign",
+      title: "Campaign created",
+      meta: campaign.name,
+    });
+    for (const a of assets) {
+      out.push({
+        id: `a-${a.id}`,
+        ts: a.created_at,
+        kind: "asset",
+        title: `${a.kind === "product" ? "Product photo" : "Reference"} uploaded`,
+        meta: a.mime ?? undefined,
+        thumb: a.public_url,
+      });
+    }
+    for (const v of variants) {
+      out.push({
+        id: `v-${v.id}`,
+        ts: v.created_at,
+        kind: "variant",
+        title: v.title,
+        meta: `${v.platform} · ${v.direction_label} · ${v.match_score ?? 0}% match`,
+        thumb: v.public_url,
+      });
+    }
+    for (const m of messages) {
+      out.push({
+        id: `m-${m.id}`,
+        ts: m.created_at,
+        kind: "message",
+        title: m.role === "user" ? "You" : "Creative Director",
+        meta: m.content.length > 140 ? m.content.slice(0, 140) + "…" : m.content,
+      });
+    }
+    return out.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+  }, [campaign, assets, variants, messages]);
+
+  const iconFor = (k: ActivityItem["kind"]) => {
+    if (k === "campaign") return <Sparkles className="size-3.5 text-violet" />;
+    if (k === "asset") return <Upload className="size-3.5 text-clay" />;
+    if (k === "variant") return <ImageIcon className="size-3.5 text-lime" />;
+    return <MessageCircle className="size-3.5 text-ink" />;
+  };
+
+  return (
+    <div className="max-w-3xl px-8 py-8">
+      <SectionLabel>Activity · {items.length} events</SectionLabel>
+      <ol className="mt-6 space-y-3">
+        {items.map((it) => (
+          <li key={it.id} className="flex gap-3 rounded-2xl border border-border bg-white p-3">
+            {it.thumb ? (
+              <img src={it.thumb} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+            ) : (
+              <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-muted">{iconFor(it.kind)}</div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="truncate text-sm font-medium">{it.title}</div>
+                <div className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {new Date(it.ts).toLocaleString()}
+                </div>
+              </div>
+              {it.meta && <div className="mt-0.5 truncate text-xs text-muted-foreground">{it.meta}</div>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+// Keep GlassCard import alive for future inspector cards
+void GlassCard;
+void StatusDot;
