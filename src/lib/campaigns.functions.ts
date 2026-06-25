@@ -49,6 +49,12 @@ const RegenerateVariantInput = z.object({
   instruction: z.string().optional(),
 });
 
+const ReframeVariantInput = z.object({
+  variantId: z.string().uuid(),
+  platform: z.string().min(1).max(40),
+  aspect: z.enum(["1:1", "4:5", "9:16", "16:9", "2:3"]),
+});
+
 const DirectorChatInput = z.object({
   campaignId: z.string().uuid(),
   message: z.string().min(1).max(2000),
@@ -512,6 +518,63 @@ export const regenerateVariant = createServerFn({ method: "POST" })
       .update({ storage_path: path, public_url: url, prompt })
       .eq("id", v.id);
     return { id: v.id, public_url: url };
+  });
+
+const ASPECT_GUIDE: Record<string, string> = {
+  "1:1": "1:1 perfect square composition",
+  "4:5": "4:5 vertical portrait composition",
+  "9:16": "9:16 tall vertical composition (mobile story / reels)",
+  "16:9": "16:9 wide landscape composition",
+  "2:3": "2:3 vertical pin composition",
+};
+
+export const reframeVariant = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => ReframeVariantInput.parse(d))
+  .handler(async ({ data }) => {
+    const sb = await admin();
+    const { data: v, error } = await sb
+      .from("variants")
+      .select("*")
+      .eq("id", data.variantId)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const aspectGuide = ASPECT_GUIDE[data.aspect];
+    const basePrompt = (v.prompt ?? "").replace(/\b(1:1|4:5|9:16|16:9|2:3)\s*[a-z ]*composition\b/gi, "").trim();
+    const prompt = `${basePrompt}
+
+REFRAME for ${data.platform} — ${aspectGuide}. Preserve the subject, palette, mood and lighting from the original; recompose the framing, crop and negative space to feel native to ${data.platform}. Keep the product the clear focal point. No text overlays.`;
+
+    const img = await generateImage(prompt);
+    const { path, url } = await uploadOutput(v.campaign_id, img.b64, img.mime);
+
+    const parentReasoning = (v.reasoning && typeof v.reasoning === "object" ? v.reasoning : {}) as Record<string, unknown>;
+    const reasoning = {
+      ...parentReasoning,
+      parent_variant_id: v.id,
+      parent_title: v.title,
+      reframed_aspect: data.aspect,
+    };
+
+    const { data: row, error: insErr } = await sb
+      .from("variants")
+      .insert({
+        campaign_id: v.campaign_id,
+        platform: data.platform,
+        direction_label: `Reframe · ${data.aspect}`,
+        title: v.title,
+        mood_caption: v.mood_caption,
+        caption_body: v.caption_body,
+        storage_path: path,
+        public_url: url,
+        match_score: v.match_score,
+        reasoning,
+        prompt,
+      })
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+    return { id: row.id as string, public_url: url };
   });
 
 export const listDirectorMessages = createServerFn({ method: "GET" })

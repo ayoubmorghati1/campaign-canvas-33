@@ -4,14 +4,10 @@ import {
   ArrowRight,
   Bell,
   ChevronDown,
-  FolderClosed,
-  ImageDown,
-  Layers3,
   LayoutGrid,
   Plus,
   Search,
   Settings,
-  Sparkles,
   Wand2,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -52,14 +48,6 @@ function StudioSidebar() {
       items: [
         { l: "Projects", to: "/studio", icon: <LayoutGrid className="size-4" /> },
         { l: "New campaign", to: "/studio/new", icon: <Plus className="size-4" />, pill: "⌘N" },
-        { l: "Brand Kits", to: "/studio/brand", icon: <Layers3 className="size-4" /> },
-      ],
-    },
-    {
-      label: "Library",
-      items: [
-        { l: "Explorations", to: "/studio/archive", icon: <Sparkles className="size-4" /> },
-        { l: "Exports", to: "/studio/exports", icon: <ImageDown className="size-4" /> },
       ],
     },
   ];
@@ -181,11 +169,5 @@ function buildCrumbs(pathname: string): { label: string; to?: string }[] {
   if (pathname === "/studio") return [{ label: "NORDH" }, { label: "Projects" }];
   if (pathname === "/studio/new") return [{ label: "NORDH", to: "/studio" }, { label: "New campaign" }];
   if (pathname.startsWith("/studio/c/")) return [{ label: "NORDH", to: "/studio" }, { label: "Campaign" }];
-  if (pathname === "/studio/brand") return [{ label: "NORDH", to: "/studio" }, { label: "Brand Kits" }];
-  if (pathname === "/studio/archive") return [{ label: "NORDH", to: "/studio" }, { label: "Explorations" }];
-  if (pathname === "/studio/exports") return [{ label: "NORDH", to: "/studio" }, { label: "Exports" }];
   return [{ label: "Studio" }];
 }
-
-// silence unused imports
-void FolderClosed;
