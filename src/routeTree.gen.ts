@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioNewRouteImport } from './routes/studio.new'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -28,28 +29,36 @@ const StudioIndexRoute = StudioIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StudioRoute,
 } as any)
+const StudioNewRoute = StudioNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
+  '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/studio/new': typeof StudioNewRoute
   '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
+  '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/studio' | '/studio/'
+  fullPaths: '/' | '/studio' | '/studio/new' | '/studio/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/studio'
-  id: '__root__' | '/' | '/studio' | '/studio/'
+  to: '/' | '/studio/new' | '/studio'
+  id: '__root__' | '/' | '/studio' | '/studio/new' | '/studio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -80,14 +89,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioIndexRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/studio/new': {
+      id: '/studio/new'
+      path: '/new'
+      fullPath: '/studio/new'
+      preLoaderRoute: typeof StudioNewRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
 interface StudioRouteChildren {
+  StudioNewRoute: typeof StudioNewRoute
   StudioIndexRoute: typeof StudioIndexRoute
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
+  StudioNewRoute: StudioNewRoute,
   StudioIndexRoute: StudioIndexRoute,
 }
 
