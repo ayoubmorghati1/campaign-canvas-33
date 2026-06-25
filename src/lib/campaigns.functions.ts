@@ -346,8 +346,8 @@ const VariantMetaSchema = z.object({
         title: z.string(),
         mood_caption: z.string(),
         caption_body: z.string(),
-        match_score: z.number().int().min(60).max(99),
-        why: z.array(z.string()).max(5),
+        match_score: z.number(),
+        why: z.array(z.string()),
         prompt: z.string().describe("Detailed image-generation prompt embodying the brief"),
       }),
     )
@@ -384,16 +384,15 @@ export const generateVariants = createServerFn({ method: "POST" })
     const platforms: string[] = (campaign.platforms ?? ["IG Feed"]).slice(0, 4);
     const directionsPerPlatform = 3;
 
-    const { generateText, Output } = await import("ai");
+    const { generateText } = await import("ai");
     const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(gatewayKey());
 
     const refCount = assets.filter((a) => a.kind === "reference").length;
     const productCount = assets.filter((a) => a.kind === "product").length;
 
-    const { experimental_output: meta } = await generateText({
+    const { text: metaText } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      experimental_output: Output.object({ schema: VariantMetaSchema }),
       messages: [
         {
           role: "user",
@@ -426,10 +425,25 @@ For each variant return:
 - why (2-4 short bullet phrases on why this works)
 - prompt (a detailed image-generation prompt: describe the scene, composition, lighting, palette, framing, props — and include the platform aspect ratio guidance: ${Object.entries(PLATFORM_ASPECT).map(([p, a]) => `${p} = ${a}`).join("; ")}. Always feature the product clearly. Never include text overlays.)
 
-Vary the directions meaningfully (e.g., editorial still life / lifestyle / abstract).`,
+Vary the directions meaningfully (e.g., editorial still life / lifestyle / abstract).
+
+Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
+{ "variants": [ { "platform": string, "direction_label": string, "title": string, "mood_caption": string, "caption_body": string, "match_score": number, "why": [string, ...], "prompt": string } ] }`,
         },
       ],
     });
+
+    let metaParsed: unknown;
+    try {
+      metaParsed = extractJSON(metaText);
+    } catch (e) {
+      throw new Error(`AI returned unparseable variants. ${(e as Error).message}`);
+    }
+    const metaResult = VariantMetaSchema.safeParse(metaParsed);
+    if (!metaResult.success) {
+      throw new Error(`AI variants invalid: ${metaResult.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+    }
+    const meta = metaResult.data;
 
     const created: Array<{ id: string }> = [];
     for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
