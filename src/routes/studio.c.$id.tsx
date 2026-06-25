@@ -18,12 +18,15 @@ import {
   Sparkles,
   Upload,
   Wand2,
+  X,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Chip, GlassCard, SectionLabel, StatusDot } from "@/components/studio/primitives";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { aspectClass, downloadVariant, type AspectRatio } from "@/lib/download-image";
 import {
   analyzeCampaign,
   directorChat,
@@ -36,7 +39,10 @@ import {
 } from "@/lib/campaigns.functions";
 import { cn } from "@/lib/utils";
 
-const tabSchema = z.object({ tab: z.enum(["variants", "brief", "activity"]).optional() });
+const tabSchema = z.object({
+  tab: z.enum(["variants", "brief", "activity"]).optional(),
+  v: z.string().optional(),
+});
 type Tab = "variants" | "brief" | "activity";
 
 export const Route = createFileRoute("/studio/c/$id")({
@@ -60,8 +66,12 @@ function CampaignWorkspace() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const tab: Tab = search.tab ?? "variants";
+  const selectedId = search.v ?? null;
   const setTab = (t: Tab) =>
-    navigate({ to: "/studio/c/$id", params: { id }, search: { tab: t }, replace: true });
+    navigate({ to: "/studio/c/$id", params: { id }, search: { tab: t, v: undefined }, replace: true });
+  const selectVariant = (vid: string | null) =>
+    navigate({ to: "/studio/c/$id", params: { id }, search: { tab, v: vid ?? undefined }, replace: true });
+  const [directorOpen, setDirectorOpen] = useState(false);
 
   const qc = useQueryClient();
   const { data } = useQuery({
@@ -74,11 +84,6 @@ function CampaignWorkspace() {
     },
   });
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!selectedId && data?.variants?.length) setSelectedId(data.variants[0].id);
-  }, [data, selectedId]);
-
   if (!data) {
     return (
       <div className="grid min-h-[60vh] place-items-center text-muted-foreground">
@@ -88,7 +93,7 @@ function CampaignWorkspace() {
   }
 
   const { campaign, brief, variants, assets } = data;
-  const variant = variants.find((v) => v.id === selectedId) ?? variants[0] ?? null;
+  const variant = selectedId ? variants.find((v) => v.id === selectedId) ?? null : null;
   const busy = campaign.status === "generating" || campaign.status === "analyzing";
 
   const regen = useMutation({
@@ -98,8 +103,8 @@ function CampaignWorkspace() {
   });
 
   return (
-    <div className="grid grid-cols-[1fr_380px] gap-0">
-      <section className="min-h-[calc(100vh-57px)] border-r border-border">
+    <div className="relative">
+      <section className="min-h-[calc(100vh-57px)]">
         <div className="px-8 pt-8">
           <SectionLabel>Campaign · {campaign.brand}</SectionLabel>
           <div className="mt-2 flex items-end justify-between gap-6">
@@ -176,9 +181,16 @@ function CampaignWorkspace() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-5 p-8 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-6 p-8 md:grid-cols-3 xl:grid-cols-4">
               {variants.map((v, idx) => (
-                <VariantCard key={v.id} v={v} idx={idx} active={v.id === variant?.id} onSelect={() => setSelectedId(v.id)} />
+                <VariantCard
+                  key={v.id}
+                  v={v}
+                  idx={idx}
+                  active={v.id === variant?.id}
+                  campaignName={campaign.name}
+                  onSelect={() => selectVariant(v.id)}
+                />
               ))}
             </div>
           )
@@ -193,21 +205,31 @@ function CampaignWorkspace() {
         )}
       </section>
 
-      {/* Inspector */}
-      <aside className="sticky top-[57px] flex h-[calc(100vh-57px)] flex-col overflow-y-auto bg-paper">
-        {variant ? (
-          <Inspector
-            campaignId={id}
-            variant={variant}
-            dna={(brief?.references_dna as Array<{ label: string; weight: number }> | null) ?? []}
-            onRefresh={() => qc.invalidateQueries({ queryKey: ["campaign", id] })}
-          />
-        ) : (
-          <div className="p-6 text-sm text-muted-foreground">Select a variant to inspect.</div>
-        )}
+      {/* Inspector — contextual drawer, only for variants tab */}
+      <Sheet open={!!variant && tab === "variants"} onOpenChange={(o) => !o && selectVariant(null)}>
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto border-l border-border bg-paper p-0 sm:max-w-[560px]"
+        >
+          {variant && (
+            <Inspector
+              campaignId={id}
+              variant={variant}
+              campaignName={campaign.name}
+              dna={(brief?.references_dna as Array<{ label: string; weight: number }> | null) ?? []}
+              onRefresh={() => qc.invalidateQueries({ queryKey: ["campaign", id] })}
+              onClose={() => selectVariant(null)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
 
-        <DirectorPanel campaignId={id} />
-      </aside>
+      {/* Floating Director — always reachable */}
+      <FloatingDirector
+        campaignId={id}
+        open={directorOpen}
+        onOpenChange={setDirectorOpen}
+      />
     </div>
   );
 }
@@ -216,13 +238,17 @@ function VariantCard({
   v,
   idx,
   active,
+  campaignName,
   onSelect,
 }: {
   v: Variant;
   idx: number;
   active: boolean;
+  campaignName: string;
   onSelect: () => void;
 }) {
+  const reframed = (v as { reframed_aspect?: string | null }).reframed_aspect ?? null;
+  const aspectCls = aspectClass(reframed);
   return (
     <motion.button
       onClick={onSelect}
@@ -234,15 +260,16 @@ function VariantCard({
         active ? "border-ink shadow-glow" : "border-border",
       )}
     >
-      <div className="relative aspect-[4/5] w-full bg-stone-100">
+      <div className={cn("relative w-full bg-stone-100", aspectCls)}>
         {v.public_url && (
           <img src={v.public_url} alt={v.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
         )}
         <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-ink">
           <StatusDot tone={(v.match_score ?? 0) > 93 ? "lime" : "violet"} /> {v.match_score ?? 0}% on brief
         </div>
-        <div className="absolute right-4 top-4 rounded-full bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
-          {v.platform}
+        <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
+          <span>{v.platform}</span>
+          {reframed && <span className="rounded bg-lime px-1 text-ink">{reframed}</span>}
         </div>
 
         <div className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/85 p-3 backdrop-blur">
@@ -263,15 +290,24 @@ function VariantCard({
             >
               <Copy className="size-3.5" />
             </button>
-            <a
-              href={v.public_url ?? "#"}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!v.public_url) return;
+                try {
+                  await downloadVariant({
+                    url: v.public_url,
+                    filenameBase: `${campaignName}-${v.platform}-${v.title}`,
+                    aspect: reframed as AspectRatio | null,
+                  });
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Download failed");
+                }
+              }}
               className="grid size-7 place-items-center rounded-full bg-paper text-ink hover:bg-lime"
             >
               <Download className="size-3.5" />
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -296,16 +332,22 @@ function GeneratingPlaceholder({ count }: { count: number }) {
 function Inspector({
   campaignId,
   variant,
+  campaignName,
   dna,
   onRefresh,
+  onClose,
 }: {
   campaignId: string;
   variant: Variant;
+  campaignName: string;
   dna: Array<{ label: string; weight: number }>;
   onRefresh: () => void;
+  onClose: () => void;
 }) {
   const reasoning = (variant.reasoning as { why?: string[] } | null) ?? {};
   const why = reasoning.why ?? [];
+  const reframed = (variant as { reframed_aspect?: string | null }).reframed_aspect ?? null;
+  const previewAspect = aspectClass(reframed);
 
   const regen = useMutation({
     mutationFn: (instruction?: string) =>
@@ -321,13 +363,47 @@ function Inspector({
 
   return (
     <>
-      <div className="border-b border-border p-5">
-        <SectionLabel>Inspector · {variant.title}</SectionLabel>
-        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-stone-100">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-paper/95 px-6 py-4 backdrop-blur">
+        <div className="min-w-0">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Inspector · {variant.platform}{reframed ? ` · ${reframed}` : ""}
+          </div>
+          <div className="truncate font-serif text-2xl italic">{variant.title}</div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={async () => {
+              if (!variant.public_url) return;
+              try {
+                await downloadVariant({
+                  url: variant.public_url,
+                  filenameBase: `${campaignName}-${variant.platform}-${variant.title}`,
+                  aspect: reframed as AspectRatio | null,
+                });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Download failed");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1.5 text-xs hover:border-ink/30"
+          >
+            <Download className="size-3.5" /> Download
+          </button>
+          <button
+            onClick={onClose}
+            className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-ink"
+            aria-label="Close inspector"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className={cn("overflow-hidden rounded-2xl border border-border bg-stone-100", previewAspect)}>
           {variant.public_url ? (
-            <img src={variant.public_url} alt={variant.title} className="aspect-square w-full object-cover" />
+            <img src={variant.public_url} alt={variant.title} className="size-full object-cover" />
           ) : (
-            <div className="aspect-square w-full bg-stone-200" />
+            <div className="size-full bg-stone-200" />
           )}
         </div>
         <div className="mt-3 flex items-center justify-between">
@@ -343,7 +419,7 @@ function Inspector({
       </div>
 
       {variant.caption_body && (
-        <div className="border-b border-border p-5">
+        <div className="border-t border-border px-6 py-5">
           <div className="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <span>Caption</span>
             <button
@@ -361,7 +437,7 @@ function Inspector({
       )}
 
       {why.length > 0 && (
-        <div className="border-b border-border p-5">
+        <div className="border-t border-border px-6 py-5">
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <Sparkles className="size-3 text-violet" /> Why this works
           </div>
@@ -377,7 +453,7 @@ function Inspector({
       )}
 
       {dna.length > 0 && (
-        <div className="border-b border-border p-5">
+        <div className="border-t border-border px-6 py-5">
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <Layers className="size-3" /> Inspiration DNA
           </div>
@@ -397,7 +473,7 @@ function Inspector({
         </div>
       )}
 
-      <div className="border-b border-border p-5">
+      <div className="border-t border-border px-6 py-5">
         <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           <Zap className="size-3" /> Quick actions
         </div>
@@ -416,6 +492,49 @@ function Inspector({
       </div>
 
       <ReframeBlock variant={variant} onRefresh={onRefresh} />
+      {/* keep campaignId reference */}
+      <span className="hidden" data-campaign={campaignId} />
+    </>
+  );
+}
+
+function FloatingDirector({
+  campaignId,
+  open,
+  onOpenChange,
+}: {
+  campaignId: string;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  return (
+    <>
+      <button
+        onClick={() => onOpenChange(true)}
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-medium text-paper shadow-glow transition-transform hover:scale-105"
+      >
+        <Wand2 className="size-4 text-lime" /> Talk to Director
+      </button>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 border-l border-border bg-paper p-0 sm:max-w-[440px]"
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <MessageCircle className="size-3" /> Creative Director
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-ink"
+              aria-label="Close director"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <DirectorPanel campaignId={campaignId} />
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
@@ -447,13 +566,13 @@ function DirectorPanel({ campaignId }: { campaignId: string }) {
   };
 
   return (
-    <div className="p-5">
-      <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        <MessageCircle className="size-3" /> Talk to the Director
-      </div>
-
-      {messages.length > 0 && (
-        <div className="mb-3 max-h-72 space-y-2 overflow-y-auto rounded-2xl border border-border bg-white p-3">
+    <div className="flex min-h-0 flex-1 flex-col p-5">
+      <div className="mb-3 flex-1 space-y-2 overflow-y-auto rounded-2xl border border-border bg-white p-3">
+        {messages.length === 0 && (
+          <div className="grid h-full place-items-center text-center text-xs text-muted-foreground">
+            Try: "Make the lighting feel like 6am, not noon."
+          </div>
+        )}
           {messages.map((m) => (
             <div
               key={m.id}
@@ -471,14 +590,10 @@ function DirectorPanel({ campaignId }: { campaignId: string }) {
             </div>
           )}
           <div ref={endRef} />
-        </div>
-      )}
+      </div>
 
       <div className="rounded-2xl bg-ink p-3 text-paper">
-        {messages.length === 0 && (
-          <div className="text-xs text-paper/70">Try: "Make the lighting feel like 6am, not noon."</div>
-        )}
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-paper/10 p-2">
+        <div className="flex items-center gap-2 rounded-xl bg-paper/10 p-2">
           <Wand2 className="size-4 text-lime" />
           <input
             value={input}
