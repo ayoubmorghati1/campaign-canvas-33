@@ -13,6 +13,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioNewRouteImport } from './routes/studio.new'
+import { Route as StudioCIdRouteImport } from './routes/studio.c.$id'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -34,17 +35,24 @@ const StudioNewRoute = StudioNewRouteImport.update({
   path: '/new',
   getParentRoute: () => StudioRoute,
 } as any)
+const StudioCIdRoute = StudioCIdRouteImport.update({
+  id: '/c/$id',
+  path: '/c/$id',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
   '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/c/$id': typeof StudioCIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/studio/new': typeof StudioNewRoute
   '/studio': typeof StudioIndexRoute
+  '/studio/c/$id': typeof StudioCIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -52,13 +60,20 @@ export interface FileRoutesById {
   '/studio': typeof StudioRouteWithChildren
   '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/c/$id': typeof StudioCIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/studio' | '/studio/new' | '/studio/'
+  fullPaths: '/' | '/studio' | '/studio/new' | '/studio/' | '/studio/c/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/studio/new' | '/studio'
-  id: '__root__' | '/' | '/studio' | '/studio/new' | '/studio/'
+  to: '/' | '/studio/new' | '/studio' | '/studio/c/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/studio'
+    | '/studio/new'
+    | '/studio/'
+    | '/studio/c/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,17 +111,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioNewRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/studio/c/$id': {
+      id: '/studio/c/$id'
+      path: '/c/$id'
+      fullPath: '/studio/c/$id'
+      preLoaderRoute: typeof StudioCIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
 interface StudioRouteChildren {
   StudioNewRoute: typeof StudioNewRoute
   StudioIndexRoute: typeof StudioIndexRoute
+  StudioCIdRoute: typeof StudioCIdRoute
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
   StudioNewRoute: StudioNewRoute,
   StudioIndexRoute: StudioIndexRoute,
+  StudioCIdRoute: StudioCIdRoute,
 }
 
 const StudioRouteWithChildren =
