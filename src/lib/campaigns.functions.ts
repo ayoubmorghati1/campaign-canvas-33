@@ -560,6 +560,7 @@ REFRAME for ${data.platform} — ${aspectGuide}. Preserve the subject, palette, 
       .from("variants")
       .insert({
         campaign_id: v.campaign_id,
+        parent_variant_id: v.parent_variant_id ?? v.id,
         platform: data.platform,
         direction_label: `Reframe · ${data.aspect}`,
         title: v.title,
