@@ -49,6 +49,11 @@ const RegenerateVariantInput = z.object({
   instruction: z.string().optional(),
 });
 
+const DirectorChatInput = z.object({
+  campaignId: z.string().uuid(),
+  message: z.string().min(1).max(2000),
+});
+
 /* ----------------------------- Helpers ----------------------------- */
 
 async function admin() {
