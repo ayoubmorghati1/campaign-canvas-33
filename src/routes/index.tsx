@@ -30,7 +30,6 @@ function LandingPage() {
     <div className="min-h-screen overflow-hidden bg-paper text-ink">
       <SiteNav />
       <Hero />
-      <LogoCloud />
       <HowItWorks />
       <FeatureDirector />
       <FeatureDNA />
@@ -38,8 +37,6 @@ function LandingPage() {
       <FeatureInspector />
       <FeatureExport />
       <InsideStudio />
-      <Testimonial />
-      <PricingTeaser />
       <FinalCTA />
       <SiteFooter />
     </div>
