@@ -112,26 +112,6 @@ function Hero() {
   );
 }
 
-/* ---------- LOGO CLOUD ---------- */
-function LogoCloud() {
-  const brands = ["NORDH", "Atelier 9", "kinto", "Hemlock", "Studio Maris", "OXBLOOD"];
-  return (
-    <section className="border-y border-border bg-white/60">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 py-10 md:flex-row md:justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          Trusted by teams shipping faster
-        </span>
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-muted-foreground">
-          {brands.map((b, i) => (
-            <span key={b} className={i % 2 === 0 ? "font-serif text-xl italic" : "font-mono text-sm uppercase tracking-widest"}>
-              {b}
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /* ---------- HOW IT WORKS ---------- */
 function HowItWorks() {
@@ -555,87 +535,7 @@ function InsideStudio() {
   );
 }
 
-/* ---------- TESTIMONIAL ---------- */
-function Testimonial() {
-  return (
-    <section id="customers" className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp>
-        <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-lime/30 via-paper to-violet/20 p-12 md:p-20">
-          <div aria-hidden className="bloom-violet pointer-events-none absolute -bottom-32 -right-20 size-[420px] rounded-full opacity-50" />
-          <SectionLabel>Customers</SectionLabel>
-          <p className="mt-6 max-w-3xl font-serif text-3xl leading-snug italic md:text-5xl">
-            "We replaced our launch deck, our caption doc, and three back-and-forth
-            calls with our agency. Campaign Studio gave us a launch in an
-            afternoon — and one we were actually proud to ship."
-          </p>
-          <div className="mt-8 flex items-center gap-4">
-            <div className="grid size-12 place-items-center rounded-full bg-ink font-serif text-paper">AM</div>
-            <div>
-              <div className="font-medium">Amelia Marsh</div>
-              <div className="text-sm text-muted-foreground">Co-founder, NORDH Skincare</div>
-            </div>
-          </div>
-        </div>
-      </MotionFadeUp>
-    </section>
-  );
-}
 
-/* ---------- PRICING TEASER ---------- */
-function PricingTeaser() {
-  const tiers = [
-    { name: "Free", price: "$0", desc: "For founders sketching the first launch.", features: ["3 campaigns / month", "All platform variants", "Watermark on exports"], cta: "Start free", tone: "muted" },
-    { name: "Studio", price: "$29", desc: "For teams shipping monthly drops.", features: ["Unlimited campaigns", "Brand Kits", "Explain & remix", "Priority director"], cta: "Open studio", tone: "violet", highlight: true },
-    { name: "Agency", price: "$99", desc: "Shared workspace for client work.", features: ["Multi-brand workspace", "Client review links", "API access", "White-label exports"], cta: "Book a walk-through", tone: "ink" },
-  ];
-
-  return (
-    <section id="pricing" className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp className="mx-auto max-w-3xl text-center">
-        <SectionLabel className="justify-center">Pricing</SectionLabel>
-        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
-          One subscription. <span className="italic text-violet">Every launch.</span>
-        </h2>
-      </MotionFadeUp>
-
-      <div className="mt-12 grid gap-5 md:grid-cols-3">
-        {tiers.map((t, i) => (
-          <MotionFadeUp key={t.name} delay={i * 0.08}>
-            <div className={`relative h-full rounded-[28px] border p-7 transition-all ${t.highlight ? "border-violet bg-ink text-paper shadow-glow" : "border-border bg-white shadow-soft hover:-translate-y-1"}`}>
-              {t.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-lime px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-ink">
-                  most loved
-                </div>
-              )}
-              <div className="font-serif text-2xl italic">{t.name}</div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="font-serif text-5xl">{t.price}</span>
-                <span className={`text-sm ${t.highlight ? "text-paper/60" : "text-muted-foreground"}`}>/ month</span>
-              </div>
-              <p className={`mt-3 text-sm ${t.highlight ? "text-paper/70" : "text-muted-foreground"}`}>{t.desc}</p>
-              <ul className="mt-6 space-y-2 text-sm">
-                {t.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className={`mt-0.5 size-4 shrink-0 ${t.highlight ? "text-lime" : "text-violet"}`} /> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/studio"
-                className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-all ${t.highlight ? "bg-lime text-ink hover:opacity-90" : t.tone === "ink" ? "bg-ink text-paper hover:bg-ink/90" : "border border-border bg-white text-ink hover:border-ink/30"}`}
-              >
-                {t.cta} <ArrowRight className="size-4" />
-              </Link>
-            </div>
-          </MotionFadeUp>
-        ))}
-      </div>
-      <div className="mt-6 text-center">
-        <Link to="/pricing" className="text-sm text-muted-foreground hover:text-ink">Compare every feature →</Link>
-      </div>
-    </section>
-  );
-}
 
 /* ---------- FINAL CTA ---------- */
 function FinalCTA() {
