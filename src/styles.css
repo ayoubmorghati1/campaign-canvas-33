@@ -59,42 +59,59 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-lime: var(--lime);
+  --color-clay: var(--clay);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 0.875rem;
+  /* Campaign Studio palette — warm paper, deep ink, electric violet, acid lime, warm clay */
+  --paper: oklch(0.985 0.008 85);          /* #FAF8F4 */
+  --ink: oklch(0.18 0.02 270);             /* near #0F0F12 */
+  --violet: oklch(0.58 0.22 280);          /* #6E56FF */
+  --violet-soft: oklch(0.93 0.05 285);
+  --lime: oklch(0.93 0.22 122);            /* #D4FF3F */
+  --clay: oklch(0.68 0.17 35);             /* #F26A4B */
+
+  --background: var(--paper);
+  --foreground: var(--ink);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: var(--ink);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: var(--ink);
+  --primary: var(--violet);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.95 0.01 85);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.96 0.008 85);
+  --muted-foreground: oklch(0.5 0.02 270);
+  --accent: var(--lime);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.01 85);
+  --input: oklch(0.92 0.01 85);
+  --ring: var(--violet);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar: oklch(0.99 0.005 85);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--violet);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.01 85);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: oklch(0.9 0.01 85);
+  --sidebar-ring: var(--violet);
 }
 
 .dark {
@@ -140,5 +157,35 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
   }
+
+  .font-serif { font-family: var(--font-serif); }
+  .font-mono { font-family: var(--font-mono); }
+
+  ::selection {
+    background: var(--lime);
+    color: var(--ink);
+  }
+}
+
+@utility bloom-violet {
+  background: radial-gradient(60% 60% at 50% 50%, color-mix(in oklch, var(--violet) 55%, transparent) 0%, transparent 70%);
+  filter: blur(60px);
+}
+@utility bloom-lime {
+  background: radial-gradient(60% 60% at 50% 50%, color-mix(in oklch, var(--lime) 60%, transparent) 0%, transparent 70%);
+  filter: blur(60px);
+}
+@utility bloom-clay {
+  background: radial-gradient(60% 60% at 50% 50%, color-mix(in oklch, var(--clay) 55%, transparent) 0%, transparent 70%);
+  filter: blur(60px);
+}
+@utility shadow-soft {
+  box-shadow: 0 1px 0 0 oklch(1 0 0 / 0.6) inset, 0 1px 2px oklch(0 0 0 / 0.04), 0 10px 30px -12px oklch(0 0 0 / 0.10);
+}
+@utility shadow-glow {
+  box-shadow: 0 10px 40px -10px color-mix(in oklch, var(--violet) 50%, transparent), 0 2px 6px oklch(0 0 0 / 0.08);
 }
