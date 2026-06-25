@@ -82,10 +82,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Turn product photos and inspiration into a complete, on-brand marketing campaign in minutes. Not an image generator — a creative director." },
       { name: "author", content: "Campaign Studio" },
       { property: "og:title", content: "Campaign Studio — Your AI Creative Director" },
-      { property: "og:description", content: "Upload your product. Show us the vibe. Ship a launch-ready campaign." },
+      { property: "og:description", content: "Turn product photos and inspiration into a complete, on-brand marketing campaign in minutes. Not an image generator — a creative director." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@CampaignStudio" },
+      { name: "twitter:title", content: "Campaign Studio — Your AI Creative Director" },
+      { name: "twitter:description", content: "Turn product photos and inspiration into a complete, on-brand marketing campaign in minutes. Not an image generator — a creative director." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0965535e-f004-426b-ba65-648c023d1715/id-preview-c99f0d3f--ed16ce6f-3524-4799-a10f-1c0dc0386e67.lovable.app-1782397967608.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0965535e-f004-426b-ba65-648c023d1715/id-preview-c99f0d3f--ed16ce6f-3524-4799-a10f-1c0dc0386e67.lovable.app-1782397967608.png" },
     ],
     links: [
       {
