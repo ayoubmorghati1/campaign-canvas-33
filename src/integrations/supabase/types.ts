@@ -191,6 +191,7 @@ export type Database = {
           id: string
           match_score: number | null
           mood_caption: string | null
+          parent_variant_id: string | null
           platform: string
           prompt: string | null
           public_url: string | null
@@ -206,6 +207,7 @@ export type Database = {
           id?: string
           match_score?: number | null
           mood_caption?: string | null
+          parent_variant_id?: string | null
           platform: string
           prompt?: string | null
           public_url?: string | null
@@ -221,6 +223,7 @@ export type Database = {
           id?: string
           match_score?: number | null
           mood_caption?: string | null
+          parent_variant_id?: string | null
           platform?: string
           prompt?: string | null
           public_url?: string | null
@@ -234,6 +237,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variants_parent_variant_id_fkey"
+            columns: ["parent_variant_id"]
+            isOneToOne: false
+            referencedRelation: "variants"
             referencedColumns: ["id"]
           },
         ]
