@@ -85,6 +85,12 @@ function CampaignWorkspace() {
     },
   });
 
+  const regen = useMutation({
+    mutationFn: () => generateVariants({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaign", id] }),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   if (!data) {
     return (
       <div className="grid min-h-[60vh] place-items-center text-muted-foreground">
@@ -102,12 +108,6 @@ function CampaignWorkspace() {
     }
   }
   const busy = campaign.status === "generating" || campaign.status === "analyzing";
-
-  const regen = useMutation({
-    mutationFn: () => generateVariants({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaign", id] }),
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
 
   return (
     <div className="relative">
@@ -188,7 +188,7 @@ function CampaignWorkspace() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 p-8 md:grid-cols-3 xl:grid-cols-4">
+            <div className="columns-1 gap-6 p-8 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-6 [&>*]:break-inside-avoid">
               {roots.map((v, idx) => (
                 <VariantCard
                   key={v.id}
@@ -236,7 +236,8 @@ function VariantCard({
   childCount: number;
 }) {
   const reframed = reframedAspectOf(v);
-  const aspectCls = aspectClass(reframed);
+  // Only force an aspect for reframed derivatives. Root variants hug the image.
+  const aspectCls = reframed ? aspectClass(reframed) : "";
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -247,10 +248,24 @@ function VariantCard({
       <Link
         to="/studio/c/$id/v/$variantId"
         params={{ id: campaignId, variantId: v.id }}
-        className={cn("relative block w-full bg-stone-100", aspectCls)}
+        className={cn("relative block w-full bg-stone-100", aspectCls || "min-h-[200px]")}
       >
         {v.public_url && (
-          <img src={v.public_url} alt={v.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+          reframed ? (
+            <img
+              src={v.public_url}
+              alt={v.title}
+              className="absolute inset-0 size-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <img
+              src={v.public_url}
+              alt={v.title}
+              className="block h-auto w-full"
+              loading="lazy"
+            />
+          )
         )}
         <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-ink">
           <StatusDot tone={(v.match_score ?? 0) > 93 ? "lime" : "violet"} /> {v.match_score ?? 0}% on brief

@@ -1,63 +1,30 @@
-# Variant detail subpage with grouped children
+## Fix the crash, then make cards hug the image
 
-Yes — the drawer is the wrong container for what this needs to do. Promote each variant to its own route, and group reframes/regenerations as children of the original. That's the Apple Photos / Linear sub-issue model and it scales as the user spins more derivatives.
+### 1. Stop the hooks crash (the real reason clicks "do nothing")
 
-## New route
+In `src/routes/studio.c.$id.tsx`, `CampaignWorkspace` declares `useMutation` after an early `if (!data) return …`. That breaks React's hook order on the second render and throws `Rendered more hooks than during the previous render`, which kicks the page into the error boundary — that's why the variant cards stop responding and the layout looks half-broken.
 
-`src/routes/studio.c.$id.v.$variantId.tsx` — full-page variant workspace.
+Fix: move every hook (`useMutation`, any `useMemo`/`useState` currently below the early return) **above** the `if (!data)` guard. Same audit pass on `Inspector` and `VariantWorkspace` so we don't regress the same bug elsewhere.
 
-Layout (single column, generous canvas — no cramped 380px rail):
+### 2. Make the variant card hug its image
 
-```text
-[ ← back to all variants ]                          [ Share ] [ Download ]
+Today `VariantCard` wraps the image in a container with a forced `aspectClass(reframed)` (default `aspect-[4/5]` when there's no reframe). When the underlying generated image is 9:16 or 1:1, the box doesn't match — hence the blank space below the photo.
 
-  PARENT VARIANT                                              ── 92% on brief
-  Title in editorial serif · IG Feed · 4:5
-  ┌────────────────────────────────────┐
-  │                                    │     Caption
-  │   large hero image, true aspect    │     Why it works
-  │                                    │     Inspiration DNA
-  │                                    │     Quick actions
-  └────────────────────────────────────┘     Reframe / regenerate panel
+Switch the card to image-driven sizing:
 
-  ─────────────────────────────────────────────
-  DERIVATIVES · 4
-  [ IG Story 9:16 ] [ TikTok 9:16 ] [ Pinterest 2:3 ] [ + new format ]
-   thumbnail strip — clicking promotes that child to the hero
-```
+- Drop the forced `aspect-[…]` wrapper for root variants.
+- Render `<img>` as a normal block element (`w-full h-auto`) so the card height equals the image's natural height.
+- Keep the badges (`% on brief`, platform, `+N formats`) and the caption block absolutely positioned over the image, as today.
+- For **reframed** derivatives (which have an explicit target aspect like 9:16), keep the forced aspect ratio — that's intentional, because the source pixels may not yet match and we want the card to preview the target frame.
 
-Selection of which derivative is "in focus" lives in the URL: `?focus=<childId>`. Default is the parent. The hero swap is instant (just changes which image fills the hero slot); the surrounding controls update to match.
+Net effect: in the grid, IG Story variants render tall, IG Feed renders square, Pinterest renders 2:3 — every card hugs its image, no dead space.
 
-## Parent / child grouping
+### 3. Verify
 
-Add a `parent_variant_id UUID REFERENCES public.variants(id) ON DELETE CASCADE` column (nullable; null = top-level variant on the campaign).
+- Reload `/studio/c/$id` and confirm no error-boundary, cards are clickable, navigation to `/studio/c/$id/v/$variantId` works.
+- Confirm the grid no longer shows blank vertical space under shorter images.
+- Confirm reframed derivatives on the subpage still render in their target aspect.
 
-- `reframeVariant` writes `parent_variant_id = sourceVariant.parent_variant_id ?? sourceVariant.id` so all reframes of the same image share one root, regardless of which sibling the user clicked from.
-- `regenerateVariant` keeps `parent_variant_id` as-is (regenerate replaces the same slot conceptually).
-- `getCampaign` returns variants as before; the UI groups by `parent_variant_id || id` to build the tree.
+### Out of scope
 
-Campaign grid (`?tab=variants`) shows only roots (variants with no parent). Each card gets a small "+N formats" badge when it has children. Clicking the card navigates to the subpage instead of opening a drawer.
-
-## What goes away
-
-- The `Sheet` inspector and the variant-selection URL param (`?v=`) on the campaign page — replaced by the subroute.
-- Reframe inside a drawer next to unrelated context — now lives in the variant's own page where it belongs.
-
-## What stays
-
-- Floating Director button (works from any tab and from the subpage).
-- Brief and Activity tabs unchanged.
-- `cropToAspect` download helper unchanged.
-
-## Files
-
-- `supabase/migrations/<new>.sql` — `ALTER TABLE public.variants ADD COLUMN parent_variant_id UUID REFERENCES public.variants(id) ON DELETE CASCADE;` + index on `parent_variant_id`.
-- `src/lib/campaigns.functions.ts` — set `parent_variant_id` in `reframeVariant`; add a `getVariant(id)` server fn that returns the variant + its siblings/children for the subpage.
-- `src/routes/studio.c.$id.v.$variantId.tsx` — new subpage (hero + side controls + derivative strip).
-- `src/routes/studio.c.$id.tsx` — campaign grid shows only roots with a child-count badge; cards link to the subpage; remove the inspector Sheet.
-
-## Out of scope
-
-- Renaming/reordering derivatives.
-- Deleting individual derivatives (can add later — easy with the new schema).
-- Comparing two derivatives side-by-side.
+No changes to data model, server functions, inspector contents, or the variant subpage layout — only the two issues above.
