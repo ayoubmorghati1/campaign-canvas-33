@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Wand2, Layers3, Compass, Check, Github, MessageSquare, Zap } from "lucide-react";
+import { ArrowRight, Sparkles, Wand2, Layers3, Compass, Check, Github, Zap } from "lucide-react";
 import { HeroPreview } from "@/components/studio/HeroPreview";
 import { SiteFooter, SiteNav } from "@/components/studio/SiteNav";
 import {
