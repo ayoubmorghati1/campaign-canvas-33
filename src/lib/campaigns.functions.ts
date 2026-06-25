@@ -13,7 +13,6 @@ const RecordAssetInput = z.object({
   campaignId: z.string().uuid(),
   kind: z.enum(["product", "reference"]),
   storagePath: z.string().min(1),
-  publicUrl: z.string().url(),
   mime: z.string().optional(),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
@@ -116,13 +115,17 @@ export const recordAsset = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => RecordAssetInput.parse(d))
   .handler(async ({ data }) => {
     const sb = await admin();
+    const { data: signed, error: signErr } = await sb.storage
+      .from("campaign-inputs")
+      .createSignedUrl(data.storagePath, 60 * 60 * 24 * 365);
+    if (signErr) throw new Error(signErr.message);
     const { data: row, error } = await sb
       .from("campaign_assets")
       .insert({
         campaign_id: data.campaignId,
         kind: data.kind,
         storage_path: data.storagePath,
-        public_url: data.publicUrl,
+        public_url: signed?.signedUrl ?? "",
         mime: data.mime ?? null,
         width: data.width ?? null,
         height: data.height ?? null,
