@@ -248,7 +248,7 @@ type ImageGenResult = { b64: string; mime: string };
 async function generateImage(prompt: string): Promise<ImageGenResult> {
   const { gatewayKey } = await import("./ai-gateway.server");
   const key = gatewayKey();
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -266,10 +266,21 @@ async function generateImage(prompt: string): Promise<ImageGenResult> {
     if (res.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
     throw new Error(`Image generation failed (${res.status}): ${txt.slice(0, 200)}`);
   }
-  const json = (await res.json()) as { data?: Array<{ b64_json?: string }> };
-  const b64 = json.data?.[0]?.b64_json;
-  if (!b64) throw new Error("Image generation returned no image data.");
-  return { b64, mime: "image/png" };
+  const json = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        images?: Array<{ image_url?: { url?: string } }>;
+        content?: string;
+      };
+    }>;
+  };
+  const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  if (!dataUrl || !dataUrl.startsWith("data:")) {
+    throw new Error("Image generation returned no image data.");
+  }
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Unexpected image data format from gateway.");
+  return { b64: match[2], mime: match[1] || "image/png" };
 }
 
 async function uploadOutput(campaignId: string, b64: string, mime: string) {
