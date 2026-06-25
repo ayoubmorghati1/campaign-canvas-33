@@ -1,100 +1,73 @@
+# Cleanup + working Brief/Activity + per-variant reframe
 
-# Make Campaign Studio Actually Work — No Auth
+Fixing the gaps you called out. Scope is UI + a small server addition for reframing; no schema changes.
 
-Skip login entirely. Everything runs against a single shared workspace so dropping files actually triggers AI and produces real campaign assets you can keep across sessions.
+## 1. Sidebar cleanup (`src/routes/studio.tsx`)
 
-## What "working" means after this plan
+- Remove **Sign in** link in `SiteNav` is not relevant here — but you mean the studio sidebar. Remove:
+  - **Brand Kits** (`/studio/brand`) — not built, returns Not Found.
+  - **Explorations** (`/studio/archive`) — not built.
+  - **Exports** (`/studio/exports`) — not built.
+- That collapses the sidebar to a single section: **Projects** and **New campaign**. Drop the now-empty "Library" group.
+- Also remove the matching footer/nav links pointing at those routes in `SiteNav.tsx` ("Brand Kits", "Exports") so nothing dead-ends.
+- Keep the brand switcher and free-plan card.
 
-1. Open `/studio` — see your real campaigns (or empty state on a fresh project).
-2. `/studio/new`: drop product photos + inspiration images → they upload to storage.
-3. AI **actually looks at the images** (Gemini multimodal) and writes a real creative brief: positioning, palette, mood, composition notes — streamed live into the wizard.
-4. Confirm the brief, pick voice + freedom + platforms, hit Generate.
-5. AI **actually generates images** (one per direction × platform), captions, and a real match score; stored to the campaign.
-6. `/studio/c/$id` shows the real variants with the inspector reading real metadata. Regenerate + "Talk to the Director" both call AI for real.
+(If you'd rather keep Brand Kits as a placeholder "coming soon" page instead of removing it, say the word — default is remove.)
 
-No fake gradients, no fake "Morning Ritual" — everything is data.
+## 2. Campaign tabs: Brief + Activity become real (`src/routes/studio.c.$id.tsx`)
 
-## Architecture
+The three buttons (Variants / Brief / Activity) are currently decorative. Make them stateful:
 
-```text
-Browser ──► TanStack server fns / routes ──► Lovable AI Gateway (Gemini)
-   │                  │                       └─ vision analysis (structured brief)
-   │                  │                       └─ image generation (variants)
-   │                  ├─► Cloud Storage  (PUBLIC buckets, simpler with no auth)
-   │                  └─► Cloud Postgres (campaigns, assets, briefs, variants)
+- Lift a `tab` state. URL-sync via search param `?tab=brief` so refresh keeps you on the same tab.
+- **Variants** — current grid (no change).
+- **Brief** — render the real `creative_briefs` row: goal, audience, position, mood, palette swatches, visual direction, notes. Fields are editable inline and persist through the existing `updateBrief` server fn (already used in the wizard). Read-only "Regenerate brief" button calls `analyzeCampaign` again.
+- **Activity** — chronological feed built from existing data:
+  - Campaign created / status transitions (from `campaigns.created_at`, `updated_at`, `status`).
+  - Each asset upload (`campaign_assets.created_at` + thumbnail).
+  - Each variant generation (`variants.created_at` + title + match score).
+  - Each director message (`director_messages`).
+  Merge, sort desc, render as a timeline. No new tables — pure read from what's already in `getCampaign` plus `listDirectorMessages`.
+
+## 3. Per-variant reframe (different aspect ratio / platform)
+
+What you want: take an existing variant image and produce the same creative re-fit for, say, a Story (9:16) or a Pinterest pin (2:3), without re-rolling the whole campaign.
+
+### UX
+On the inspector (right rail) for the selected variant, add a **Reframe** block under Quick actions:
+
+- Aspect ratio chips: **1:1**, **4:5**, **9:16**, **16:9**, **2:3**.
+- Platform chip (optional, prefills aspect): IG Feed (4:5), IG Story / Reels (9:16), TikTok (9:16), Pinterest (2:3), LinkedIn (1:1), X (16:9).
+- "Reframe" button → creates a **new sibling variant** in the same campaign with the chosen platform + aspect, image regenerated from the same brief + the original variant's image as a visual reference so composition, palette and subject carry over. Original variant stays untouched.
+- New variant appears in the grid with a small "↳ reframed from {title}" chip.
+
+### Server (`src/lib/campaigns.functions.ts`)
+Add one server fn:
+
+```ts
+reframeVariant({ variantId, platform, aspect })
 ```
 
-No auth, no `_authenticated` gate, no `/auth` route. Server functions are `createServerFn` without `requireSupabaseAuth`.
+- Loads the source variant + its campaign brief.
+- Calls the image model with: the source variant's `public_url` as a reference image, the brief's visual_direction, and an instruction like *"Recompose for {platform} at {aspect}; preserve subject, palette, mood, and lighting; reframe composition for the new ratio."*
+- Maps aspect → `size` understood by the image route (e.g. `1024x1024`, `832x1280`, `720x1280`, `1280x720`, `832x1216`).
+- Inserts a new `variants` row (same `campaign_id`, new `platform`, `direction_label = "Reframe · {aspect}"`, `reasoning.parent_variant_id = sourceId`).
+- Returns the new variant id; the workspace invalidates and renders it.
 
-## Data model (Postgres)
+No DB migration: `reasoning` is already `jsonb`, so the parent pointer rides along there.
 
-Single shared workspace. RLS enabled but policies are open (`USING (true)` for select/insert/update/delete to `anon`+`authenticated`) — explicit, so we can lock it down later without a migration on every table.
+## 4. Brand Kits route
 
-- `campaigns` — id, name, status (`draft|analyzing|generating|ready`), voice, freedom (0–100), platforms `text[]`, created_at, updated_at.
-- `campaign_assets` — campaign_id, kind (`product|reference`), storage_path, mime, width, height.
-- `creative_briefs` — campaign_id (1:1), goal, audience, position, mood, palette JSON, visual_direction, notes — written by AI, editable inline.
-- `variants` — campaign_id, platform, direction_label, title, mood_caption, caption_body, storage_path, match_score, reasoning JSON (why-this-works + DNA breakdown), created_at.
-- `director_messages` — campaign_id, role, content, created_at.
-
-Every table: explicit `GRANT` to `anon`, `authenticated`, `service_role`. RLS on with open policies.
-
-## Storage
-
-Two **public** buckets: `campaign-inputs` and `campaign-outputs`. Public read avoids signed-URL plumbing while we have no users. Server fns write via service role; the browser reads via the public URL.
-
-## Server functions / routes
-
-In `src/lib/*.functions.ts` unless noted:
-
-- `listCampaigns()` — dashboard.
-- `createCampaign({ name })` → new row.
-- `getCampaign({ id })` → campaign + assets + brief + variants for the workspace.
-- `recordAsset({ campaignId, kind, storagePath, mime, width, height })` — called after browser uploads directly to the bucket.
-- `analyzeCampaign({ campaignId })` — loads asset URLs, calls `google/gemini-3-flash-preview` with `image_url` parts + `Output.object` schema for the brief, persists `creative_briefs`. Returns the brief; the wizard streams progress lines via a small companion route `src/routes/api/analyze-stream.ts` (SSE) for the live "Director stream" panel.
-- `updateBrief({ campaignId, patch })` — when you edit the brief step.
-- `generateVariants({ campaignId })` — for each selected platform × 3 directions: image gen via the streaming route below; in parallel, one text call returns `{ title, mood, caption, match_score, reasoning }` per variant; persist row + image. Image generation must use a server **route** (not server fn) because typed RPC can't stream — `src/routes/api/generate-variant-image.ts` per the TanStack image streaming pattern.
-- `regenerateVariant({ variantId, instruction })` — re-runs one cell with optional natural-language tweak.
-- `src/routes/api/director.ts` — streaming chat (`streamText` + `useChat`) for the inspector's "Talk to the Director" panel, with a small tool set: `adjust_variant`, `add_reference_note`.
-
-All AI uses `createLovableAiGatewayProvider`. Default model `google/gemini-3-flash-preview` for text/vision; `google/gemini-3-flash-preview-image` for images. Agent loops use `stepCountIs(50)`.
-
-## Frontend changes
-
-- **Dashboard (`/studio`)**: replace hardcoded `projects` / `inProgress` arrays with `useSuspenseQuery(listCampaigns)`. Empty state CTA when none.
-- **Wizard (`/studio/new`)**:
-  - Step 1 (Products): real drag-and-drop + file picker, upload directly to the public bucket, then `recordAsset`. Real thumbnails from the public URL.
-  - Step 2 (Inspiration): same upload mechanic. "AI learning your taste" panel reads the streamed brief fields as they arrive.
-  - Step 3 (Brief): real editable fields persisted via `updateBrief`.
-  - Step 4 (Generate): submits, shows the real progress stream, redirects to `/studio/c/$id` when ready.
-- **Workspace (`/studio/c/$id`)**:
-  - Variant grid renders real generated images.
-  - Inspector reads real `reasoning` + `match_score` + DNA breakdown from the variant row.
-  - Regenerate + the quick-action chips ("More like this", "Make it warmer", etc.) call `regenerateVariant` with the right instruction.
-  - "Talk to the Director" wired to `/api/director`.
-- **Errors**: surface 402 (credits) and 429 (rate limit) as clear toasts that match the existing aesthetic.
-- **Hydration fix** (quietly, while I'm in here): the "Thursday · June 25" greeting in the dashboard renders `new Date()` during SSR vs client and is the current hydration warning — move it behind `useHydrated()` or compute on the server.
-
-## What gets removed
-
-- All mock arrays (`projects`, `variants`, `inProgress`, fake "Morning Ritual" breadcrumbs).
-- Decorative `FakeStream` — replaced by real streamed analysis lines.
-- Hard-coded gradients used as fake cover art (real generated images instead).
+Delete `studio.brand` references from the nav. If the route file exists, leave it for now (not in the build) or remove it — small follow-up, doesn't matter for the user-facing app once nav links are gone.
 
 ## Out of scope
 
-- Multi-user / per-account isolation (single shared workspace until you add auth).
-- Export-to-Figma / scheduled publishing.
-- Billing UI (the "Upgrade" link stays a link).
-
-## Privacy note (worth flagging once)
-
-No auth means every visitor sees every campaign in this project. Fine for solo/demo use, not for sharing the URL publicly with real client work in it. When you want isolation, add Lovable Cloud auth + tighten RLS — small follow-up, not a rewrite.
+- Multi-page Brief editor with versioning (the inline edit is enough for MVP).
+- A separate Activity table — derived from existing rows is sufficient until volume justifies persistence.
+- Bulk reframe ("make all of these 9:16") — easy follow-up once the single-variant path works.
 
 ## Order of build
 
-1. Enable Lovable Cloud → migrations for tables + open RLS + GRANTs; create the two public buckets.
-2. Server fns: `listCampaigns`, `createCampaign`, `recordAsset`, `getCampaign`. Wire dashboard + wizard step 1 (real upload + thumbnails).
-3. `analyzeCampaign` + SSE progress route. Wire wizard steps 2–3 with real streamed brief.
-4. `generateVariants` + image streaming route. Wire wizard step 4 → workspace.
-5. Workspace inspector + `regenerateVariant` + director chat route.
-6. Polish: error toasts, empty states, loading skeletons matching the existing aesthetic; quiet hydration fix.
+1. Sidebar/nav cleanup.
+2. Tabs wired up: Variants / Brief / Activity components + URL param.
+3. `reframeVariant` server fn + inspector UI block.
+4. Verify with a typecheck and a quick run through the wizard → workspace → reframe.
