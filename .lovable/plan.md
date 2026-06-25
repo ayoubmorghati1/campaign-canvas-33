@@ -1,20 +1,31 @@
-## Plan
+## What I'll remove (nothing real behind it)
 
-### 1. Fix the broken variant navigation
-- Convert the campaign route into a real parent route by rendering an `<Outlet />` when the URL matches `/studio/c/:id/v/:variantId`.
-- This is why clicking appears to do nothing: the link targets the child route, but the parent campaign component keeps rendering the grid instead of letting the variant page mount.
+**Top nav (`SiteNav`)**
+- "Sign in" link → no auth exists
+- "Pricing" link → pricing page doesn't exist
+- "Customers" link → removing the testimonial it points to
 
-### 2. Make variant cards clearly openable
-- Keep the whole image/card as a proper TanStack `<Link>` so the browser status bar, cmd-click, hover, and navigation all work.
-- Add a subtle hover treatment and explicit “Open” affordance on the card so it feels clickable, not like a static image tile.
+**Landing page sections (`src/routes/index.tsx`)**
+- `PricingTeaser` — fake tiers/prices
+- `LogoCloud` — invented brand names ("NORDH", "Atelier 9", "kinto"…)
+- `Testimonial` — fabricated quote from "Amelia Marsh, NORDH"
+- Hero stat strip ("2 min / 12+ / 96% avg DNA match") — invented numbers
+- "See pricing" button in the `FinalCTA`
 
-### 3. Fix masonry sizing without dead blank space
-- Root variant cards will continue to hug the real image height.
-- Reframed derivatives will keep their intended frame ratio only where needed.
-- Avoid forced empty boxes that make tiles look broken.
+**Footer (`SiteFooter`)**
+- "SOC 2 · in progress" + "v 0.9 · beta" pills — not true
+- Resources column (Changelog / Playbook / Templates / API / Status) — none exist
+- Company column (About / Customers / Careers / Press / Contact) — none exist
+- Privacy / Terms / Security links — no pages
+- Keep: logo, tagline, and a slim Product column (Studio, New campaign) that links to real routes
 
-### 4. Verify the flow
-- Open the campaign grid.
-- Click a variant.
-- Confirm the URL changes to `/studio/c/.../v/...` and the dedicated variant workspace renders.
-- Confirm returning to “All variants” works.
+## What stays (everything works)
+
+Hero · How it works · AI Creative Director · Campaign DNA · Explain this campaign · Inspiration Inspector · Multi-platform export · Inside the studio · Final CTA → "Open the studio"
+
+## Files touched
+
+- `src/routes/index.tsx` — delete `PricingTeaser`, `LogoCloud`, `Testimonial`, hero stat block, "See pricing" button, and their imports
+- `src/components/studio/SiteNav.tsx` — remove Sign in / Pricing / Customers nav items; rewrite footer columns to real links only
+
+No backend or studio-app changes — those already work.

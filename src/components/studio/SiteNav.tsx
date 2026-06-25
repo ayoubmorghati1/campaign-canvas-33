@@ -12,12 +12,9 @@ export function SiteNav() {
           <a href="#features" className="hover:text-ink">Product</a>
           <a href="#how" className="hover:text-ink">How it works</a>
           <a href="#inside" className="hover:text-ink">Studio</a>
-          <Link to="/pricing" className="hover:text-ink">Pricing</Link>
-          <a href="#customers" className="hover:text-ink">Customers</a>
         </nav>
         <div className="flex items-center gap-3">
-          <Link to="/sign-in" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">Sign in</Link>
-          <ViolePillButton to="/studio">Start free</ViolePillButton>
+          <ViolePillButton to="/studio">Open the studio</ViolePillButton>
         </div>
       </div>
     </header>
@@ -28,39 +25,23 @@ export function SiteFooter() {
   return (
     <footer className="mt-32 border-t border-border bg-paper">
       <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid grid-cols-2 gap-12 md:grid-cols-5">
-          <div className="col-span-2">
+        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-sm">
             <LogoMark />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
               The AI Creative Director for product marketing. Built for founders, shipped by teams.
             </p>
-            <div className="mt-6 flex gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <span className="rounded-full bg-muted px-2 py-1">SOC 2 · in progress</span>
-              <span className="rounded-full bg-muted px-2 py-1">v 0.9 · beta</span>
-            </div>
           </div>
-          {[
-            { title: "Product", links: ["Studio", "Inspiration Inspector", "Campaign DNA"] },
-            { title: "Resources", links: ["Changelog", "Playbook", "Templates", "API", "Status"] },
-            { title: "Company", links: ["About", "Customers", "Careers", "Press", "Contact"] },
-          ].map((col) => (
-            <div key={col.title}>
-              <div className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{col.title}</div>
-              <ul className="space-y-2 text-sm">
-                {col.links.map((l) => (
-                  <li key={l}><a className="text-ink hover:text-violet" href="#">{l}</a></li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <div className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Product</div>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/studio" className="text-ink hover:text-violet">Studio</Link></li>
+              <li><Link to="/studio/new" className="text-ink hover:text-violet">New campaign</Link></li>
+            </ul>
+          </div>
         </div>
-        <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:items-center">
-          <span>© 2026 Campaign Studio · Made with intention.</span>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-ink">Privacy</a>
-            <a href="#" className="hover:text-ink">Terms</a>
-            <a href="#" className="hover:text-ink">Security</a>
-          </div>
+        <div className="mt-12 border-t border-border pt-6 text-xs text-muted-foreground">
+          © 2026 Campaign Studio · Made with intention.
         </div>
       </div>
     </footer>
