@@ -97,23 +97,6 @@ function Hero() {
             </SecondaryButton>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.4 }}
-            className="mt-12 grid max-w-md grid-cols-3 gap-6"
-          >
-            {[
-              { k: "2 min", v: "product → campaign" },
-              { k: "12+", v: "platform formats" },
-              { k: "96%", v: "avg DNA match" },
-            ].map((s) => (
-              <div key={s.k}>
-                <div className="font-serif text-3xl tracking-tight">{s.k}</div>
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{s.v}</div>
-              </div>
-            ))}
-          </motion.div>
         </div>
 
         <motion.div
