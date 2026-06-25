@@ -1,20 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
-import { recordAsset } from "@/lib/campaigns.functions";
-
-function safeName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80);
-}
+import { createUploadUrl, recordAsset } from "@/lib/campaigns.functions";
 
 export async function uploadCampaignAsset(
   campaignId: string,
   kind: "product" | "reference",
   file: File,
 ) {
-  const path = `${campaignId}/${kind}/${crypto.randomUUID()}-${safeName(file.name)}`;
-  const { error } = await supabase.storage.from("campaign-inputs").upload(path, file, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
+  const { path, token } = await createUploadUrl({
+    data: { campaignId, kind, filename: file.name },
   });
+  const { error } = await supabase.storage
+    .from("campaign-inputs")
+    .uploadToSignedUrl(path, token, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
   if (error) throw new Error(error.message);
 
   // Read intrinsic size for nicer UX (optional)
