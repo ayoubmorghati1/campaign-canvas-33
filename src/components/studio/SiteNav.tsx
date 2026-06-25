@@ -40,7 +40,7 @@ export function SiteFooter() {
             </div>
           </div>
           {[
-            { title: "Product", links: ["Studio", "Brand Kits", "Inspiration Inspector", "Campaign DNA", "Exports"] },
+            { title: "Product", links: ["Studio", "Inspiration Inspector", "Campaign DNA"] },
             { title: "Resources", links: ["Changelog", "Playbook", "Templates", "API", "Status"] },
             { title: "Company", links: ["About", "Customers", "Careers", "Press", "Contact"] },
           ].map((col) => (
