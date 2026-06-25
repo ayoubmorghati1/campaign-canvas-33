@@ -1,45 +1,63 @@
-# Campaign workspace: inspector UX + real reframe downloads
+# Variant detail subpage with grouped children
 
-Three problems, one pass. Frontend-only.
+Yes — the drawer is the wrong container for what this needs to do. Promote each variant to its own route, and group reframes/regenerations as children of the original. That's the Apple Photos / Linear sub-issue model and it scales as the user spins more derivatives.
 
-## 1. Inspector becomes a contextual drawer, not a sticky rail
+## New route
 
-Today the right rail is always mounted, even on Brief/Activity, and the inspector is jammed into a 380px column that scrolls awkwardly next to a totally unrelated tab. That's the cramped feeling.
+`src/routes/studio.c.$id.v.$variantId.tsx` — full-page variant workspace.
 
-New behavior (Linear / Apple Photos energy):
+Layout (single column, generous canvas — no cramped 380px rail):
 
-- The right column is removed from the page grid. Variants tab becomes full-width — a roomier 3-up / 4-up grid with more air.
-- Clicking a variant opens an **Inspector sheet** sliding in from the right (shadcn `Sheet`, width ~560px on desktop, full-width on mobile, with a soft backdrop and ESC/click-outside to close).
-- The sheet has proper padding (p-8), a large hero preview that respects the variant's true aspect ratio, and clear sections: Caption · Why it works · Inspiration DNA · Quick actions · Reframe.
-- Brief and Activity tabs no longer carry a phantom right rail — they get the full canvas width they need.
-- Selection state is URL-synced (`?tab=variants&v=<id>`) so the sheet survives refresh and back/forward.
+```text
+[ ← back to all variants ]                          [ Share ] [ Download ]
 
-## 2. Director chat moves out of the rail
+  PARENT VARIANT                                              ── 92% on brief
+  Title in editorial serif · IG Feed · 4:5
+  ┌────────────────────────────────────┐
+  │                                    │     Caption
+  │   large hero image, true aspect    │     Why it works
+  │                                    │     Inspiration DNA
+  │                                    │     Quick actions
+  └────────────────────────────────────┘     Reframe / regenerate panel
 
-The Director was glued to the bottom of the inspector, so it disappeared whenever the inspector wasn't relevant and shared scroll with it.
+  ─────────────────────────────────────────────
+  DERIVATIVES · 4
+  [ IG Story 9:16 ] [ TikTok 9:16 ] [ Pinterest 2:3 ] [ + new format ]
+   thumbnail strip — clicking promotes that child to the hero
+```
 
-- Director becomes a persistent floating pill at the bottom-right of the workspace ("Talk to Director", with unread dot).
-- Clicking opens a dedicated chat panel (popover/sheet, ~420px) that's available from any tab.
-- Conversation history and the existing `directorChat` server function are unchanged.
+Selection of which derivative is "in focus" lives in the URL: `?focus=<childId>`. Default is the parent. The hero swap is instant (just changes which image fills the hero slot); the surrounding controls update to match.
 
-## 3. Reframe actually produces the right aspect ratio
+## Parent / child grouping
 
-Today the model returns a near-square PNG no matter what aspect we ask for, so the downloaded file is wrong. Cloudflare Workers can't run sharp, so we crop in the browser.
+Add a `parent_variant_id UUID REFERENCES public.variants(id) ON DELETE CASCADE` column (nullable; null = top-level variant on the campaign).
 
-- New helper `cropToAspect(url, aspect)` loads the variant image into a canvas, center-crops to the target aspect (1:1 / 4:5 / 9:16 / 16:9 / 2:3), exports a Blob, and triggers download with a sensible filename (`<campaign>-<platform>-<aspect>.png`).
-- Variant cards and the inspector preview render reframed variants in their `reframed_aspect` ratio container (using the existing `reframed_aspect` column), so what you see matches what you download.
-- The "Download" affordance on every variant (card hover + inspector) routes through this crop helper instead of a raw `<a href>`. Originals download at their native aspect.
-- Server `reframeVariant` is unchanged — we already store `reframed_aspect`; the fix is purely on the client render + download path.
+- `reframeVariant` writes `parent_variant_id = sourceVariant.parent_variant_id ?? sourceVariant.id` so all reframes of the same image share one root, regardless of which sibling the user clicked from.
+- `regenerateVariant` keeps `parent_variant_id` as-is (regenerate replaces the same slot conceptually).
+- `getCampaign` returns variants as before; the UI groups by `parent_variant_id || id` to build the tree.
 
-## Files touched
+Campaign grid (`?tab=variants`) shows only roots (variants with no parent). Each card gets a small "+N formats" badge when it has children. Clicking the card navigates to the subpage instead of opening a drawer.
 
-- `src/routes/studio.c.$id.tsx` — drop the 2-col grid; add `Sheet` for inspector; add floating Director launcher + panel; sync `?v=` in search; pass aspect to cards.
-- `src/components/studio/primitives.tsx` — small `AspectFrame` helper if useful.
-- New `src/lib/download-image.ts` — `cropToAspect` + `downloadVariant` utilities.
-- `VariantCard` and `Inspector` — use `AspectFrame` and the new download helper.
+## What goes away
+
+- The `Sheet` inspector and the variant-selection URL param (`?v=`) on the campaign page — replaced by the subroute.
+- Reframe inside a drawer next to unrelated context — now lives in the variant's own page where it belongs.
+
+## What stays
+
+- Floating Director button (works from any tab and from the subpage).
+- Brief and Activity tabs unchanged.
+- `cropToAspect` download helper unchanged.
+
+## Files
+
+- `supabase/migrations/<new>.sql` — `ALTER TABLE public.variants ADD COLUMN parent_variant_id UUID REFERENCES public.variants(id) ON DELETE CASCADE;` + index on `parent_variant_id`.
+- `src/lib/campaigns.functions.ts` — set `parent_variant_id` in `reframeVariant`; add a `getVariant(id)` server fn that returns the variant + its siblings/children for the subpage.
+- `src/routes/studio.c.$id.v.$variantId.tsx` — new subpage (hero + side controls + derivative strip).
+- `src/routes/studio.c.$id.tsx` — campaign grid shows only roots with a child-count badge; cards link to the subpage; remove the inspector Sheet.
 
 ## Out of scope
 
-- Aspect ratio presets in Reframe stay as-is (you said that's fine).
-- No backend / schema changes.
-- Director streaming, export-all behavior unchanged.
+- Renaming/reordering derivatives.
+- Deleting individual derivatives (can add later — easy with the new schema).
+- Comparing two derivatives side-by-side.

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -41,7 +41,6 @@ import { cn } from "@/lib/utils";
 
 const tabSchema = z.object({
   tab: z.enum(["variants", "brief", "activity"]).optional(),
-  v: z.string().optional(),
 });
 type Tab = "variants" | "brief" | "activity";
 
@@ -56,21 +55,23 @@ export const Route = createFileRoute("/studio/c/$id")({
   component: CampaignWorkspace,
 });
 
-type CampaignData = Awaited<ReturnType<typeof getCampaign>>;
-type Variant = CampaignData["variants"][number];
+export type CampaignData = Awaited<ReturnType<typeof getCampaign>>;
+export type Variant = CampaignData["variants"][number];
 type Asset = CampaignData["assets"][number];
 type Brief = NonNullable<CampaignData["brief"]>;
+
+export function reframedAspectOf(v: Variant): string | null {
+  const r = (v.reasoning ?? null) as { reframed_aspect?: string } | null;
+  return r?.reframed_aspect ?? null;
+}
 
 function CampaignWorkspace() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
   const tab: Tab = search.tab ?? "variants";
-  const selectedId = search.v ?? null;
   const setTab = (t: Tab) =>
-    navigate({ to: "/studio/c/$id", params: { id }, search: { tab: t, v: undefined }, replace: true });
-  const selectVariant = (vid: string | null) =>
-    navigate({ to: "/studio/c/$id", params: { id }, search: { tab, v: vid ?? undefined }, replace: true });
+    navigate({ to: "/studio/c/$id", params: { id }, search: { tab: t }, replace: true });
   const [directorOpen, setDirectorOpen] = useState(false);
 
   const qc = useQueryClient();
@@ -93,7 +94,13 @@ function CampaignWorkspace() {
   }
 
   const { campaign, brief, variants, assets } = data;
-  const variant = selectedId ? variants.find((v) => v.id === selectedId) ?? null : null;
+  const roots = variants.filter((v) => !v.parent_variant_id);
+  const childCountByRoot = new Map<string, number>();
+  for (const v of variants) {
+    if (v.parent_variant_id) {
+      childCountByRoot.set(v.parent_variant_id, (childCountByRoot.get(v.parent_variant_id) ?? 0) + 1);
+    }
+  }
   const busy = campaign.status === "generating" || campaign.status === "analyzing";
 
   const regen = useMutation({
@@ -168,7 +175,7 @@ function CampaignWorkspace() {
         {tab === "variants" && (
           busy && variants.length === 0 ? (
             <GeneratingPlaceholder count={(campaign.platforms?.length ?? 1) * 3} />
-          ) : variants.length === 0 ? (
+          ) : roots.length === 0 ? (
             <div className="grid place-items-center px-8 py-20 text-center">
               <div>
                 <div className="font-serif text-2xl italic text-muted-foreground">No variants yet.</div>
@@ -182,14 +189,14 @@ function CampaignWorkspace() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6 p-8 md:grid-cols-3 xl:grid-cols-4">
-              {variants.map((v, idx) => (
+              {roots.map((v, idx) => (
                 <VariantCard
                   key={v.id}
                   v={v}
                   idx={idx}
-                  active={v.id === variant?.id}
+                  campaignId={id}
                   campaignName={campaign.name}
-                  onSelect={() => selectVariant(v.id)}
+                  childCount={childCountByRoot.get(v.id) ?? 0}
                 />
               ))}
             </div>
@@ -205,25 +212,6 @@ function CampaignWorkspace() {
         )}
       </section>
 
-      {/* Inspector — contextual drawer, only for variants tab */}
-      <Sheet open={!!variant && tab === "variants"} onOpenChange={(o) => !o && selectVariant(null)}>
-        <SheetContent
-          side="right"
-          className="w-full overflow-y-auto border-l border-border bg-paper p-0 sm:max-w-[560px]"
-        >
-          {variant && (
-            <Inspector
-              campaignId={id}
-              variant={variant}
-              campaignName={campaign.name}
-              dna={(brief?.references_dna as Array<{ label: string; weight: number }> | null) ?? []}
-              onRefresh={() => qc.invalidateQueries({ queryKey: ["campaign", id] })}
-              onClose={() => selectVariant(null)}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
-
       {/* Floating Director — always reachable */}
       <FloatingDirector
         campaignId={id}
@@ -237,30 +225,30 @@ function CampaignWorkspace() {
 function VariantCard({
   v,
   idx,
-  active,
+  campaignId,
   campaignName,
-  onSelect,
+  childCount,
 }: {
   v: Variant;
   idx: number;
-  active: boolean;
+  campaignId: string;
   campaignName: string;
-  onSelect: () => void;
+  childCount: number;
 }) {
-  const reframed = (v as { reframed_aspect?: string | null }).reframed_aspect ?? null;
+  const reframed = reframedAspectOf(v);
   const aspectCls = aspectClass(reframed);
   return (
-    <motion.button
-      onClick={onSelect}
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.04 }}
-      className={cn(
-        "group relative overflow-hidden rounded-3xl border bg-white text-left shadow-soft transition-all hover:-translate-y-1",
-        active ? "border-ink shadow-glow" : "border-border",
-      )}
+      className="group relative overflow-hidden rounded-3xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:border-ink/40"
     >
-      <div className={cn("relative w-full bg-stone-100", aspectCls)}>
+      <Link
+        to="/studio/c/$id/v/$variantId"
+        params={{ id: campaignId, variantId: v.id }}
+        className={cn("relative block w-full bg-stone-100", aspectCls)}
+      >
         {v.public_url && (
           <img src={v.public_url} alt={v.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
         )}
@@ -269,19 +257,20 @@ function VariantCard({
         </div>
         <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
           <span>{v.platform}</span>
-          {reframed && <span className="rounded bg-lime px-1 text-ink">{reframed}</span>}
+          {childCount > 0 && <span className="rounded bg-lime px-1 text-ink">+{childCount}</span>}
         </div>
 
-        <div className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/85 p-3 backdrop-blur">
+        <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/85 p-3 backdrop-blur">
           <div className="min-w-0">
             <div className="truncate font-serif text-lg italic leading-tight">{v.title}</div>
             <div className="truncate font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {v.mood_caption ?? v.direction_label}
             </div>
           </div>
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="pointer-events-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 if (v.caption_body) navigator.clipboard.writeText(v.caption_body);
                 toast.success("Caption copied");
@@ -292,6 +281,7 @@ function VariantCard({
             </button>
             <button
               onClick={async (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 if (!v.public_url) return;
                 try {
@@ -310,8 +300,8 @@ function VariantCard({
             </button>
           </div>
         </div>
-      </div>
-    </motion.button>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -329,24 +319,26 @@ function GeneratingPlaceholder({ count }: { count: number }) {
   );
 }
 
-function Inspector({
+export function Inspector({
   campaignId,
   variant,
   campaignName,
   dna,
   onRefresh,
   onClose,
+  hideHero,
 }: {
   campaignId: string;
   variant: Variant;
   campaignName: string;
   dna: Array<{ label: string; weight: number }>;
   onRefresh: () => void;
-  onClose: () => void;
+  onClose?: () => void;
+  hideHero?: boolean;
 }) {
   const reasoning = (variant.reasoning as { why?: string[] } | null) ?? {};
   const why = reasoning.why ?? [];
-  const reframed = (variant as { reframed_aspect?: string | null }).reframed_aspect ?? null;
+  const reframed = reframedAspectOf(variant);
   const previewAspect = aspectClass(reframed);
 
   const regen = useMutation({
@@ -363,7 +355,7 @@ function Inspector({
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-paper/95 px-6 py-4 backdrop-blur">
+      <div className="flex items-center justify-between border-b border-border bg-paper/95 px-6 py-4 backdrop-blur">
         <div className="min-w-0">
           <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Inspector · {variant.platform}{reframed ? ` · ${reframed}` : ""}
@@ -388,25 +380,32 @@ function Inspector({
           >
             <Download className="size-3.5" /> Download
           </button>
-          <button
-            onClick={onClose}
-            className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-ink"
-            aria-label="Close inspector"
-          >
-            <X className="size-4" />
-          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-ink"
+              aria-label="Close inspector"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="p-6">
-        <div className={cn("overflow-hidden rounded-2xl border border-border bg-stone-100", previewAspect)}>
-          {variant.public_url ? (
-            <img src={variant.public_url} alt={variant.title} className="size-full object-cover" />
-          ) : (
-            <div className="size-full bg-stone-200" />
-          )}
+      {!hideHero && (
+        <div className="p-6">
+          <div className={cn("overflow-hidden rounded-2xl border border-border bg-stone-100", previewAspect)}>
+            {variant.public_url ? (
+              <img src={variant.public_url} alt={variant.title} className="size-full object-cover" />
+            ) : (
+              <div className="size-full bg-stone-200" />
+            )}
+          </div>
         </div>
-        <div className="mt-3 flex items-center justify-between">
+      )}
+
+      <div className="border-t border-border px-6 py-5">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">Match score</div>
           <div className="font-mono text-lg text-violet">{variant.match_score ?? 0}%</div>
         </div>
@@ -498,7 +497,7 @@ function Inspector({
   );
 }
 
-function FloatingDirector({
+export function FloatingDirector({
   campaignId,
   open,
   onOpenChange,
