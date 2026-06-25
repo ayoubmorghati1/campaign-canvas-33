@@ -236,7 +236,8 @@ function VariantCard({
   childCount: number;
 }) {
   const reframed = reframedAspectOf(v);
-  const aspectCls = aspectClass(reframed);
+  // Only force an aspect for reframed derivatives. Root variants hug the image.
+  const aspectCls = reframed ? aspectClass(reframed) : "";
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -247,10 +248,24 @@ function VariantCard({
       <Link
         to="/studio/c/$id/v/$variantId"
         params={{ id: campaignId, variantId: v.id }}
-        className={cn("relative block w-full bg-stone-100", aspectCls)}
+        className={cn("relative block w-full bg-stone-100", aspectCls || "min-h-[200px]")}
       >
         {v.public_url && (
-          <img src={v.public_url} alt={v.title} className="absolute inset-0 size-full object-cover" loading="lazy" />
+          reframed ? (
+            <img
+              src={v.public_url}
+              alt={v.title}
+              className="absolute inset-0 size-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <img
+              src={v.public_url}
+              alt={v.title}
+              className="block h-auto w-full"
+              loading="lazy"
+            />
+          )
         )}
         <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-ink">
           <StatusDot tone={(v.match_score ?? 0) > 93 ? "lime" : "violet"} /> {v.match_score ?? 0}% on brief
