@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioNewRouteImport } from './routes/studio.new'
 import { Route as StudioCIdRouteImport } from './routes/studio.c.$id'
+import { Route as StudioCIdVVariantIdRouteImport } from './routes/studio.c.$id.v.$variantId'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -40,19 +41,26 @@ const StudioCIdRoute = StudioCIdRouteImport.update({
   path: '/c/$id',
   getParentRoute: () => StudioRoute,
 } as any)
+const StudioCIdVVariantIdRoute = StudioCIdVVariantIdRouteImport.update({
+  id: '/v/$variantId',
+  path: '/v/$variantId',
+  getParentRoute: () => StudioCIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
   '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
-  '/studio/c/$id': typeof StudioCIdRoute
+  '/studio/c/$id': typeof StudioCIdRouteWithChildren
+  '/studio/c/$id/v/$variantId': typeof StudioCIdVVariantIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/studio/new': typeof StudioNewRoute
   '/studio': typeof StudioIndexRoute
-  '/studio/c/$id': typeof StudioCIdRoute
+  '/studio/c/$id': typeof StudioCIdRouteWithChildren
+  '/studio/c/$id/v/$variantId': typeof StudioCIdVVariantIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,13 +68,25 @@ export interface FileRoutesById {
   '/studio': typeof StudioRouteWithChildren
   '/studio/new': typeof StudioNewRoute
   '/studio/': typeof StudioIndexRoute
-  '/studio/c/$id': typeof StudioCIdRoute
+  '/studio/c/$id': typeof StudioCIdRouteWithChildren
+  '/studio/c/$id/v/$variantId': typeof StudioCIdVVariantIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/studio' | '/studio/new' | '/studio/' | '/studio/c/$id'
+  fullPaths:
+    | '/'
+    | '/studio'
+    | '/studio/new'
+    | '/studio/'
+    | '/studio/c/$id'
+    | '/studio/c/$id/v/$variantId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/studio/new' | '/studio' | '/studio/c/$id'
+  to:
+    | '/'
+    | '/studio/new'
+    | '/studio'
+    | '/studio/c/$id'
+    | '/studio/c/$id/v/$variantId'
   id:
     | '__root__'
     | '/'
@@ -74,6 +94,7 @@ export interface FileRouteTypes {
     | '/studio/new'
     | '/studio/'
     | '/studio/c/$id'
+    | '/studio/c/$id/v/$variantId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,19 +139,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioCIdRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/studio/c/$id/v/$variantId': {
+      id: '/studio/c/$id/v/$variantId'
+      path: '/v/$variantId'
+      fullPath: '/studio/c/$id/v/$variantId'
+      preLoaderRoute: typeof StudioCIdVVariantIdRouteImport
+      parentRoute: typeof StudioCIdRoute
+    }
   }
 }
+
+interface StudioCIdRouteChildren {
+  StudioCIdVVariantIdRoute: typeof StudioCIdVVariantIdRoute
+}
+
+const StudioCIdRouteChildren: StudioCIdRouteChildren = {
+  StudioCIdVVariantIdRoute: StudioCIdVVariantIdRoute,
+}
+
+const StudioCIdRouteWithChildren = StudioCIdRoute._addFileChildren(
+  StudioCIdRouteChildren,
+)
 
 interface StudioRouteChildren {
   StudioNewRoute: typeof StudioNewRoute
   StudioIndexRoute: typeof StudioIndexRoute
-  StudioCIdRoute: typeof StudioCIdRoute
+  StudioCIdRoute: typeof StudioCIdRouteWithChildren
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
   StudioNewRoute: StudioNewRoute,
   StudioIndexRoute: StudioIndexRoute,
-  StudioCIdRoute: StudioCIdRoute,
+  StudioCIdRoute: StudioCIdRouteWithChildren,
 }
 
 const StudioRouteWithChildren =
