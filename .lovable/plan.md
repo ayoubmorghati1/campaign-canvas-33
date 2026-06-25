@@ -1,30 +1,20 @@
-## Fix the crash, then make cards hug the image
+## Plan
 
-### 1. Stop the hooks crash (the real reason clicks "do nothing")
+### 1. Fix the broken variant navigation
+- Convert the campaign route into a real parent route by rendering an `<Outlet />` when the URL matches `/studio/c/:id/v/:variantId`.
+- This is why clicking appears to do nothing: the link targets the child route, but the parent campaign component keeps rendering the grid instead of letting the variant page mount.
 
-In `src/routes/studio.c.$id.tsx`, `CampaignWorkspace` declares `useMutation` after an early `if (!data) return …`. That breaks React's hook order on the second render and throws `Rendered more hooks than during the previous render`, which kicks the page into the error boundary — that's why the variant cards stop responding and the layout looks half-broken.
+### 2. Make variant cards clearly openable
+- Keep the whole image/card as a proper TanStack `<Link>` so the browser status bar, cmd-click, hover, and navigation all work.
+- Add a subtle hover treatment and explicit “Open” affordance on the card so it feels clickable, not like a static image tile.
 
-Fix: move every hook (`useMutation`, any `useMemo`/`useState` currently below the early return) **above** the `if (!data)` guard. Same audit pass on `Inspector` and `VariantWorkspace` so we don't regress the same bug elsewhere.
+### 3. Fix masonry sizing without dead blank space
+- Root variant cards will continue to hug the real image height.
+- Reframed derivatives will keep their intended frame ratio only where needed.
+- Avoid forced empty boxes that make tiles look broken.
 
-### 2. Make the variant card hug its image
-
-Today `VariantCard` wraps the image in a container with a forced `aspectClass(reframed)` (default `aspect-[4/5]` when there's no reframe). When the underlying generated image is 9:16 or 1:1, the box doesn't match — hence the blank space below the photo.
-
-Switch the card to image-driven sizing:
-
-- Drop the forced `aspect-[…]` wrapper for root variants.
-- Render `<img>` as a normal block element (`w-full h-auto`) so the card height equals the image's natural height.
-- Keep the badges (`% on brief`, platform, `+N formats`) and the caption block absolutely positioned over the image, as today.
-- For **reframed** derivatives (which have an explicit target aspect like 9:16), keep the forced aspect ratio — that's intentional, because the source pixels may not yet match and we want the card to preview the target frame.
-
-Net effect: in the grid, IG Story variants render tall, IG Feed renders square, Pinterest renders 2:3 — every card hugs its image, no dead space.
-
-### 3. Verify
-
-- Reload `/studio/c/$id` and confirm no error-boundary, cards are clickable, navigation to `/studio/c/$id/v/$variantId` works.
-- Confirm the grid no longer shows blank vertical space under shorter images.
-- Confirm reframed derivatives on the subpage still render in their target aspect.
-
-### Out of scope
-
-No changes to data model, server functions, inspector contents, or the variant subpage layout — only the two issues above.
+### 4. Verify the flow
+- Open the campaign grid.
+- Click a variant.
+- Confirm the URL changes to `/studio/c/.../v/...` and the dedicated variant workspace renders.
+- Confirm returning to “All variants” works.
