@@ -537,6 +537,220 @@ function InsideStudio() {
 }
 
 
+/* ---------- HOW IT WAS BUILT ---------- */
+function HowItWasBuilt() {
+  const aiAccelerated = [
+    "UI prototyping",
+    "Frontend implementation",
+    "Component generation",
+    "Copy refinement",
+    "Iteration",
+    "Debugging",
+  ];
+  const humanDecisions = [
+    "Product positioning",
+    "UX",
+    "Information architecture",
+    "Feature prioritization",
+    "Interaction design",
+    "Creative direction",
+  ];
+  const stats = [
+    { value: "~4 Hours", label: "Total build time" },
+    { value: "~2 Hours", label: "Product thinking & review" },
+    { value: "~2 Hours", label: "AI-assisted implementation" },
+  ];
+  const tools = [
+    {
+      name: "ChatGPT",
+      mono: "GPT",
+      tone: "violet" as const,
+      roles: ["Product strategy", "UX thinking", "Product decisions", "Copywriting", "Feature prioritization", "Iteration"],
+    },
+    {
+      name: "Lovable",
+      mono: "LV",
+      tone: "clay" as const,
+      roles: ["Rapid implementation", "Frontend generation", "Supabase integration", "AI workflow", "Deployment"],
+    },
+    {
+      name: "GitHub",
+      mono: "GH",
+      tone: "lime" as const,
+      roles: ["Version control", "Public source code"],
+    },
+  ];
+
+  return (
+    <section id="how-built" className="mx-auto max-w-7xl px-6 py-24">
+      <MotionFadeUp className="max-w-3xl">
+        <SectionLabel>How it was built</SectionLabel>
+        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
+          Built with an <span className="italic text-violet">AI-first</span> workflow.
+        </h2>
+        <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
+          Campaign Studio was built using an AI-first workflow. Rather than spending time writing every component manually, I focused on product thinking, UX, interaction design, and creative direction while using AI to dramatically accelerate implementation.
+        </p>
+      </MotionFadeUp>
+
+      {/* 2x2 grid */}
+      <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-2">
+        {/* Card 1 */}
+        <MotionFadeUp delay={0.05}>
+          <GlassCard className="h-full p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
+            <Chip tone="violet" dot>01 · Product Thinking</Chip>
+            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
+              "What would a Creative Director actually do?"
+            </h3>
+            <p className="mt-4 text-muted-foreground">
+              Instead of approaching the challenge as another AI image generator, I started with a different question. That became the core product thesis.
+            </p>
+            <p className="mt-3 text-muted-foreground">
+              The experience was intentionally designed around <span className="text-ink">campaigns</span> rather than isolated generations. Workspaces, campaign variants, creative analysis, and explainability all support that philosophy.
+            </p>
+          </GlassCard>
+        </MotionFadeUp>
+
+        {/* Card 2 */}
+        <MotionFadeUp delay={0.1}>
+          <GlassCard className="flex h-full flex-col p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
+            <Chip tone="lime" dot>02 · AI Workflow</Chip>
+            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
+              Acceleration, with intent.
+            </h3>
+            <div className="mt-6 grid flex-1 grid-cols-1 gap-6 md:grid-cols-2 md:divide-x md:divide-border">
+              <div className="md:pr-6">
+                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AI accelerated</div>
+                <ul className="space-y-2 text-sm text-ink">
+                  {aiAccelerated.map((i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <Zap className="size-3.5 text-violet" />
+                      {i}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="md:pl-6">
+                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Human decisions</div>
+                <ul className="space-y-2 text-sm text-ink">
+                  {humanDecisions.map((i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <Check className="size-3.5 text-clay" />
+                      {i}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 rounded-2xl bg-ink/[0.04] px-4 py-3 text-sm italic text-ink">
+              "AI accelerated execution. Human judgment shaped the product."
+            </div>
+          </GlassCard>
+        </MotionFadeUp>
+
+        {/* Card 3 */}
+        <MotionFadeUp delay={0.15}>
+          <GlassCard className="h-full p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
+            <Chip tone="clay" dot>03 · One decision I overrode</Chip>
+            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
+              Reframed from generator to <span className="italic">Creative Director</span>.
+            </h3>
+            <p className="mt-4 text-muted-foreground">
+              The challenge naturally pushed toward building a traditional AI image generator. I intentionally reframed the experience around an AI Creative Director instead — introducing campaigns, workspaces, variants, explainability, and creative reasoning.
+            </p>
+            <p className="mt-3 text-muted-foreground">
+              I believed users think in campaigns rather than isolated generations, so I optimized the entire workflow around that idea.
+            </p>
+          </GlassCard>
+        </MotionFadeUp>
+
+        {/* Card 4 */}
+        <MotionFadeUp delay={0.2}>
+          <GlassCard className="flex h-full flex-col p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
+            <Chip tone="ink" dot>04 · Time breakdown</Chip>
+            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
+              Optimized for quality, not lines of code.
+            </h3>
+            <div className="mt-6 grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+              {stats.map((s) => (
+                <div key={s.label} className="rounded-2xl border border-border bg-white/70 p-5">
+                  <div className="font-serif text-3xl tracking-tight text-ink">{s.value}</div>
+                  <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-sm text-muted-foreground">
+              The goal was not to maximize code written. The goal was to maximize product quality, UX, and execution within the time constraint.
+            </p>
+          </GlassCard>
+        </MotionFadeUp>
+      </div>
+
+      {/* Tools used */}
+      <MotionFadeUp delay={0.1} className="mt-20">
+        <SectionLabel>Tools used</SectionLabel>
+        <h3 className="mt-3 font-serif text-3xl tracking-tight md:text-4xl">A small, sharp stack.</h3>
+      </MotionFadeUp>
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {tools.map((t, i) => (
+          <MotionFadeUp key={t.name} delay={0.1 + i * 0.05}>
+            <GlassCard className="h-full p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow">
+              <div className="flex items-center gap-3">
+                <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-ink font-mono text-[11px] font-semibold text-paper">
+                  {t.mono}
+                </div>
+                <div className="font-serif text-2xl tracking-tight">{t.name}</div>
+              </div>
+              <div className="mt-5 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Role</div>
+              <ul className="space-y-1.5 text-sm text-ink">
+                {t.roles.map((r) => (
+                  <li key={r} className="flex items-start gap-2">
+                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-ink/40" />
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          </MotionFadeUp>
+        ))}
+      </div>
+
+      {/* Explore the code */}
+      <MotionFadeUp delay={0.15} className="mt-20">
+        <SectionLabel>Explore the code</SectionLabel>
+        <h3 className="mt-3 max-w-2xl font-serif text-3xl tracking-tight md:text-4xl">
+          The complete source code for Campaign Studio is available publicly on GitHub.
+        </h3>
+      </MotionFadeUp>
+      <MotionFadeUp delay={0.2} className="mt-8">
+        <GlassCard className="group relative overflow-hidden p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
+          <div aria-hidden className="bloom-lime pointer-events-none absolute -right-20 -top-20 size-72 rounded-full opacity-40" />
+          <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 sm:flex sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-5">
+              <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink text-paper">
+                <Github className="size-7" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Repository</div>
+                <div className="truncate font-serif text-2xl tracking-tight md:text-3xl">Campaign Studio</div>
+                <div className="mt-1 truncate font-mono text-xs text-muted-foreground">github.com/ayoubmorghati1/campaign-canvas-33</div>
+              </div>
+            </div>
+            <a
+              href="https://github.com/ayoubmorghati1/campaign-canvas-33"
+              target="_blank"
+              rel="noreferrer"
+              className="group/btn inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-paper shadow-soft transition-all hover:bg-ink/90 active:scale-[0.98]"
+            >
+              View source code
+              <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-0.5" />
+            </a>
+          </div>
+        </GlassCard>
+      </MotionFadeUp>
+    </section>
+  );
+}
 
 /* ---------- FINAL CTA ---------- */
 function FinalCTA() {
