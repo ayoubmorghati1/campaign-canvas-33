@@ -14,7 +14,230 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      campaign_assets: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          height: number | null
+          id: string
+          kind: string
+          mime: string | null
+          public_url: string
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind: string
+          mime?: string | null
+          public_url: string
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind?: string
+          mime?: string | null
+          public_url?: string
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_assets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          brand: string
+          cover_path: string | null
+          created_at: string
+          freedom: number
+          id: string
+          name: string
+          platforms: string[]
+          status: string
+          updated_at: string
+          voice: string
+        }
+        Insert: {
+          brand?: string
+          cover_path?: string | null
+          created_at?: string
+          freedom?: number
+          id?: string
+          name?: string
+          platforms?: string[]
+          status?: string
+          updated_at?: string
+          voice?: string
+        }
+        Update: {
+          brand?: string
+          cover_path?: string | null
+          created_at?: string
+          freedom?: number
+          id?: string
+          name?: string
+          platforms?: string[]
+          status?: string
+          updated_at?: string
+          voice?: string
+        }
+        Relationships: []
+      }
+      creative_briefs: {
+        Row: {
+          audience: string | null
+          campaign_id: string
+          color_strategy: string | null
+          created_at: string
+          goal: string | null
+          mood: string | null
+          notes: string | null
+          palette: Json | null
+          position: string | null
+          references_dna: Json | null
+          updated_at: string
+          visual_direction: string | null
+        }
+        Insert: {
+          audience?: string | null
+          campaign_id: string
+          color_strategy?: string | null
+          created_at?: string
+          goal?: string | null
+          mood?: string | null
+          notes?: string | null
+          palette?: Json | null
+          position?: string | null
+          references_dna?: Json | null
+          updated_at?: string
+          visual_direction?: string | null
+        }
+        Update: {
+          audience?: string | null
+          campaign_id?: string
+          color_strategy?: string | null
+          created_at?: string
+          goal?: string | null
+          mood?: string | null
+          notes?: string | null
+          palette?: Json | null
+          position?: string | null
+          references_dna?: Json | null
+          updated_at?: string
+          visual_direction?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_briefs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      director_messages: {
+        Row: {
+          campaign_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          campaign_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          campaign_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "director_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      variants: {
+        Row: {
+          campaign_id: string
+          caption_body: string | null
+          created_at: string
+          direction_label: string
+          id: string
+          match_score: number | null
+          mood_caption: string | null
+          platform: string
+          prompt: string | null
+          public_url: string | null
+          reasoning: Json | null
+          storage_path: string | null
+          title: string
+        }
+        Insert: {
+          campaign_id: string
+          caption_body?: string | null
+          created_at?: string
+          direction_label: string
+          id?: string
+          match_score?: number | null
+          mood_caption?: string | null
+          platform: string
+          prompt?: string | null
+          public_url?: string | null
+          reasoning?: Json | null
+          storage_path?: string | null
+          title: string
+        }
+        Update: {
+          campaign_id?: string
+          caption_body?: string | null
+          created_at?: string
+          direction_label?: string
+          id?: string
+          match_score?: number | null
+          mood_caption?: string | null
+          platform?: string
+          prompt?: string | null
+          public_url?: string | null
+          reasoning?: Json | null
+          storage_path?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
