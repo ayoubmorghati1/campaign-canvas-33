@@ -179,13 +179,29 @@ const BriefSchema = z.object({
   mood: z.string().describe("2-4 mood adjectives"),
   color_strategy: z.string().describe("Short palette description"),
   visual_direction: z.string().describe("Short composition + style direction"),
-  palette: z.array(z.string()).max(6).describe("Up to 6 hex colors like #AABBCC"),
+  palette: z.array(z.string()).describe("Up to 6 hex colors like #AABBCC"),
   references_dna: z
-    .array(z.object({ label: z.string(), weight: z.number().int().min(0).max(100) }))
-    .max(5)
+    .array(z.object({ label: z.string(), weight: z.number() }))
     .describe("Inferred reference influences with percent weights summing to 100"),
   notes: z.string().describe("Single paragraph of creative notes for the team"),
 });
+
+function extractJSON(raw: string): unknown {
+  let s = raw
+    .replace(/^```(?:json)?\s*/im, "")
+    .replace(/```\s*$/im, "")
+    .trim();
+  if (!s.startsWith("{") && !s.startsWith("[")) {
+    const o = s.indexOf("{");
+    const a = s.indexOf("[");
+    const isArr = a !== -1 && (o === -1 || a < o);
+    const start = isArr ? a : o;
+    const end = isArr ? s.lastIndexOf("]") : s.lastIndexOf("}");
+    if (start === -1 || end <= start) throw new Error("No JSON found in AI response");
+    s = s.slice(start, end + 1);
+  }
+  return JSON.parse(s);
+}
 
 export const analyzeCampaign = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => IdInput.parse(d))
@@ -202,7 +218,7 @@ export const analyzeCampaign = createServerFn({ method: "POST" })
 
     await sb.from("campaigns").update({ status: "analyzing" }).eq("id", data.id);
 
-    const { generateText, Output } = await import("ai");
+    const { generateText } = await import("ai");
     const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(gatewayKey());
 
@@ -218,20 +234,40 @@ Write a real creative brief that captures the SHARED visual language of the refe
 and how it should be applied to the product. Be specific, opinionated, and concise —
 this becomes the source of truth for every generated asset.
 
-${products.length} product photo(s) and ${refs.length} reference(s) attached.`,
+${products.length} product photo(s) and ${refs.length} reference(s) attached.
+
+Return ONLY a JSON object (no prose, no markdown fences) with EXACTLY these keys:
+- goal (string, 3-6 words)
+- audience (string, one phrase)
+- position (string, one short phrase)
+- mood (string, 2-4 adjectives)
+- color_strategy (string)
+- visual_direction (string)
+- palette (array of up to 6 hex color strings like "#AABBCC")
+- references_dna (array of up to 5 objects { "label": string, "weight": number 0-100 } summing to 100)
+- notes (string, one paragraph)`,
       },
       ...products.map((p) => ({ type: "image" as const, image: p.public_url })),
       { type: "text", text: "— INSPIRATION REFERENCES —" },
       ...refs.map((r) => ({ type: "image" as const, image: r.public_url })),
     ];
 
-    const { experimental_output } = await generateText({
+    const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      experimental_output: Output.object({ schema: BriefSchema }),
       messages: [{ role: "user", content: userParts }],
     });
 
-    const brief = experimental_output;
+    let parsed: unknown;
+    try {
+      parsed = extractJSON(text);
+    } catch (e) {
+      throw new Error(`AI returned unparseable brief. ${(e as Error).message}`);
+    }
+    const result = BriefSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new Error(`AI brief missing fields: ${result.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+    }
+    const brief = result.data;
 
     await sb
       .from("creative_briefs")
@@ -251,7 +287,7 @@ async function generateImage(prompt: string): Promise<ImageGenResult> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${key}`,
+      "Lovable-API-Key": key,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -310,8 +346,8 @@ const VariantMetaSchema = z.object({
         title: z.string(),
         mood_caption: z.string(),
         caption_body: z.string(),
-        match_score: z.number().int().min(60).max(99),
-        why: z.array(z.string()).max(5),
+        match_score: z.number(),
+        why: z.array(z.string()),
         prompt: z.string().describe("Detailed image-generation prompt embodying the brief"),
       }),
     )
@@ -348,16 +384,15 @@ export const generateVariants = createServerFn({ method: "POST" })
     const platforms: string[] = (campaign.platforms ?? ["IG Feed"]).slice(0, 4);
     const directionsPerPlatform = 3;
 
-    const { generateText, Output } = await import("ai");
+    const { generateText } = await import("ai");
     const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
     const gateway = createLovableAiGatewayProvider(gatewayKey());
 
     const refCount = assets.filter((a) => a.kind === "reference").length;
     const productCount = assets.filter((a) => a.kind === "product").length;
 
-    const { experimental_output: meta } = await generateText({
+    const { text: metaText } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      experimental_output: Output.object({ schema: VariantMetaSchema }),
       messages: [
         {
           role: "user",
@@ -390,10 +425,25 @@ For each variant return:
 - why (2-4 short bullet phrases on why this works)
 - prompt (a detailed image-generation prompt: describe the scene, composition, lighting, palette, framing, props — and include the platform aspect ratio guidance: ${Object.entries(PLATFORM_ASPECT).map(([p, a]) => `${p} = ${a}`).join("; ")}. Always feature the product clearly. Never include text overlays.)
 
-Vary the directions meaningfully (e.g., editorial still life / lifestyle / abstract).`,
+Vary the directions meaningfully (e.g., editorial still life / lifestyle / abstract).
+
+Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
+{ "variants": [ { "platform": string, "direction_label": string, "title": string, "mood_caption": string, "caption_body": string, "match_score": number, "why": [string, ...], "prompt": string } ] }`,
         },
       ],
     });
+
+    let metaParsed: unknown;
+    try {
+      metaParsed = extractJSON(metaText);
+    } catch (e) {
+      throw new Error(`AI returned unparseable variants. ${(e as Error).message}`);
+    }
+    const metaResult = VariantMetaSchema.safeParse(metaParsed);
+    if (!metaResult.success) {
+      throw new Error(`AI variants invalid: ${metaResult.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+    }
+    const meta = metaResult.data;
 
     const created: Array<{ id: string }> = [];
     for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
