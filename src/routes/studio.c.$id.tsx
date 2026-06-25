@@ -85,6 +85,12 @@ function CampaignWorkspace() {
     },
   });
 
+  const regen = useMutation({
+    mutationFn: () => generateVariants({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaign", id] }),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   if (!data) {
     return (
       <div className="grid min-h-[60vh] place-items-center text-muted-foreground">
@@ -102,12 +108,6 @@ function CampaignWorkspace() {
     }
   }
   const busy = campaign.status === "generating" || campaign.status === "analyzing";
-
-  const regen = useMutation({
-    mutationFn: () => generateVariants({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaign", id] }),
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
 
   return (
     <div className="relative">
