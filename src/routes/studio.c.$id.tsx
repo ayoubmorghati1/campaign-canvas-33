@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   Activity,
+  ArrowUpRight,
   Crop,
   Copy,
   Download,
@@ -52,8 +53,12 @@ export const Route = createFileRoute("/studio/c/$id")({
       { name: "description", content: "Campaign workspace — variants, brief, and creative inspector." },
     ],
   }),
-  component: CampaignWorkspace,
+  component: CampaignRouteLayout,
 });
+
+function CampaignRouteLayout() {
+  return <Outlet />;
+}
 
 export type CampaignData = Awaited<ReturnType<typeof getCampaign>>;
 export type Variant = CampaignData["variants"][number];
@@ -65,7 +70,7 @@ export function reframedAspectOf(v: Variant): string | null {
   return r?.reframed_aspect ?? null;
 }
 
-function CampaignWorkspace() {
+export function CampaignWorkspace() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
@@ -239,30 +244,32 @@ function VariantCard({
   // Only force an aspect for reframed derivatives. Root variants hug the image.
   const aspectCls = reframed ? aspectClass(reframed) : "";
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.04 }}
-      className="group relative overflow-hidden rounded-3xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:border-ink/40"
+      className="group relative overflow-hidden rounded-3xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:border-ink/40 hover:shadow-glow"
     >
       <Link
         to="/studio/c/$id/v/$variantId"
         params={{ id: campaignId, variantId: v.id }}
-        className={cn("relative block w-full bg-stone-100", aspectCls || "min-h-[200px]")}
+        preload="intent"
+        className={cn("relative block w-full bg-stone-100 outline-none focus-visible:ring-2 focus-visible:ring-ink", aspectCls || "min-h-[200px]")}
+        aria-label={`Open ${v.title} variant workspace`}
       >
         {v.public_url && (
           reframed ? (
             <img
               src={v.public_url}
               alt={v.title}
-              className="absolute inset-0 size-full object-cover"
+              className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               loading="lazy"
             />
           ) : (
             <img
               src={v.public_url}
               alt={v.title}
-              className="block h-auto w-full"
+              className="block h-auto w-full transition-transform duration-500 group-hover:scale-[1.02]"
               loading="lazy"
             />
           )
@@ -275,48 +282,54 @@ function VariantCard({
           {childCount > 0 && <span className="rounded bg-lime px-1 text-ink">+{childCount}</span>}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between rounded-2xl bg-white/85 p-3 backdrop-blur">
+        <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-white/88 p-3 backdrop-blur">
           <div className="min-w-0">
             <div className="truncate font-serif text-lg italic leading-tight">{v.title}</div>
             <div className="truncate font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {v.mood_caption ?? v.direction_label}
             </div>
           </div>
-          <div className="pointer-events-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (v.caption_body) navigator.clipboard.writeText(v.caption_body);
-                toast.success("Caption copied");
-              }}
-              className="grid size-7 place-items-center rounded-full bg-paper text-ink hover:bg-lime"
-            >
-              <Copy className="size-3.5" />
-            </button>
-            <button
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!v.public_url) return;
-                try {
-                  await downloadVariant({
-                    url: v.public_url,
-                    filenameBase: `${campaignName}-${v.platform}-${v.title}`,
-                    aspect: reframed as AspectRatio | null,
-                  });
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : "Download failed");
-                }
-              }}
-              className="grid size-7 place-items-center rounded-full bg-paper text-ink hover:bg-lime"
-            >
-              <Download className="size-3.5" />
-            </button>
-          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest text-paper opacity-90 transition-transform group-hover:translate-x-0.5">
+            Open <ArrowUpRight className="size-3" />
+          </span>
         </div>
       </Link>
-    </motion.div>
+
+      <div className="absolute bottom-7 right-7 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (v.caption_body) navigator.clipboard.writeText(v.caption_body);
+            toast.success("Caption copied");
+          }}
+          className="grid size-7 place-items-center rounded-full bg-paper text-ink shadow-soft hover:bg-lime"
+          aria-label="Copy caption"
+        >
+          <Copy className="size-3.5" />
+        </button>
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!v.public_url) return;
+            try {
+              await downloadVariant({
+                url: v.public_url,
+                filenameBase: `${campaignName}-${v.platform}-${v.title}`,
+                aspect: reframed as AspectRatio | null,
+              });
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Download failed");
+            }
+          }}
+          className="grid size-7 place-items-center rounded-full bg-paper text-ink shadow-soft hover:bg-lime"
+          aria-label="Download variant"
+        >
+          <Download className="size-3.5" />
+        </button>
+      </div>
+    </motion.article>
   );
 }
 
