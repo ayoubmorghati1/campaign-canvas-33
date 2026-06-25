@@ -452,3 +452,71 @@ export const regenerateVariant = createServerFn({ method: "POST" })
       .eq("id", v.id);
     return { id: v.id, public_url: url };
   });
+
+export const listDirectorMessages = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => IdInput.parse(d))
+  .handler(async ({ data }) => {
+    const sb = await admin();
+    const { data: rows, error } = await sb
+      .from("director_messages")
+      .select("id,role,content,created_at")
+      .eq("campaign_id", data.id)
+      .order("created_at");
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const directorChat = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => DirectorChatInput.parse(d))
+  .handler(async ({ data }) => {
+    const sb = await admin();
+    const [campaignRes, briefRes, msgsRes, variantsRes] = await Promise.all([
+      sb.from("campaigns").select("name,voice,freedom,platforms").eq("id", data.campaignId).single(),
+      sb.from("creative_briefs").select("*").eq("campaign_id", data.campaignId).maybeSingle(),
+      sb.from("director_messages").select("role,content").eq("campaign_id", data.campaignId).order("created_at").limit(20),
+      sb.from("variants").select("title,platform,match_score").eq("campaign_id", data.campaignId).limit(12),
+    ]);
+    if (campaignRes.error) throw new Error(campaignRes.error.message);
+    const campaign = campaignRes.data;
+    const brief = briefRes.data;
+    const history = msgsRes.data ?? [];
+    const variants = variantsRes.data ?? [];
+
+    await sb
+      .from("director_messages")
+      .insert({ campaign_id: data.campaignId, role: "user", content: data.message });
+
+    const { generateText } = await import("ai");
+    const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
+    const gateway = createLovableAiGatewayProvider(gatewayKey());
+
+    const systemPrompt = `You are the Creative Director inside Campaign Studio — opinionated, warm, concise.
+You respond in short paragraphs (2-5 sentences) with confident creative direction.
+You do NOT generate images here; you guide the human and suggest what to regenerate.
+
+CAMPAIGN: ${campaign.name}
+VOICE: ${campaign.voice} · FREEDOM: ${campaign.freedom} · PLATFORMS: ${(campaign.platforms ?? []).join(", ")}
+${brief ? `BRIEF
+- Goal: ${brief.goal}
+- Audience: ${brief.audience}
+- Position: ${brief.position}
+- Mood: ${brief.mood}
+- Palette: ${brief.color_strategy}
+- Visual direction: ${brief.visual_direction}` : "(no brief yet)"}
+${variants.length ? `CURRENT VARIANTS: ${variants.map((v) => `${v.title} (${v.platform}, ${v.match_score}%)`).join(" · ")}` : ""}`;
+
+    const { text } = await generateText({
+      model: gateway("google/gemini-3-flash-preview"),
+      system: systemPrompt,
+      messages: [
+        ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+        { role: "user" as const, content: data.message },
+      ],
+    });
+
+    await sb
+      .from("director_messages")
+      .insert({ campaign_id: data.campaignId, role: "assistant", content: text });
+
+    return { reply: text };
+  });
