@@ -153,6 +153,19 @@ export const recordAsset = createServerFn({ method: "POST" })
     return row;
   });
 
+export const createUploadUrl = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => CreateUploadUrlInput.parse(d))
+  .handler(async ({ data }) => {
+    const safe = data.filename.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80);
+    const path = `${data.campaignId}/${data.kind}/${crypto.randomUUID()}-${safe}`;
+    const sb = await admin();
+    const { data: signed, error } = await sb.storage
+      .from("campaign-inputs")
+      .createSignedUploadUrl(path);
+    if (error) throw new Error(error.message);
+    return { path, token: signed.token, signedUrl: signed.signedUrl };
+  });
+
 export const deleteAsset = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => DeleteAssetInput.parse(d))
   .handler(async ({ data }) => {
