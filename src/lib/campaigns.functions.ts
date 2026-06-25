@@ -20,6 +20,12 @@ const RecordAssetInput = z.object({
 
 const DeleteAssetInput = z.object({ assetId: z.string().uuid() });
 
+const CreateUploadUrlInput = z.object({
+  campaignId: z.string().uuid(),
+  kind: z.enum(["product", "reference"]),
+  filename: z.string().min(1).max(200),
+});
+
 const UpdateBriefInput = z.object({
   campaignId: z.string().uuid(),
   patch: z.object({
