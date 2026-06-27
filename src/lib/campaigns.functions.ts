@@ -73,6 +73,8 @@ async function admin() {
   return supabaseAdmin;
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 /* ----------------------------- Reads ----------------------------- */
 
 export const listCampaigns = createServerFn({ method: "GET" }).handler(async () => {
@@ -420,7 +422,7 @@ async function generateAiImage(
   prompt: string,
   options?: ImageGenOptions,
 ): Promise<ImageGenResult> {
-  const { getAiGateway, toUserFacingError } = await import("@/server/ai");
+  const { getAiGateway, toUserFacingError, withRetry } = await import("@/server/ai");
   const context = options?.context;
   const sceneImage = options?.sceneImage;
   const productImages = context?.productImages ?? [];
@@ -435,11 +437,16 @@ async function generateAiImage(
       ? productAwareImagePrompt(prompt, context, { sceneImage })
       : prompt;
   try {
-    const result = await getAiGateway().generateImage({
-      operation,
-      prompt: finalPrompt,
-      images: images.length > 0 ? images : undefined,
-      aspectRatio: options?.aspectRatio,
+    const result = await withRetry({
+      maxAttempts: 4,
+      baseDelayMs: 2000,
+      fn: () =>
+        getAiGateway().generateImage({
+          operation,
+          prompt: finalPrompt,
+          images: images.length > 0 ? images : undefined,
+          aspectRatio: options?.aspectRatio,
+        }),
     });
     return { b64: result.b64, mime: result.mime };
   } catch (error) {
@@ -670,7 +677,10 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
     const meta = metaResult.data;
 
     const created: Array<{ id: string }> = [];
-    for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
+    const failures: string[] = [];
+    const plannedVariants = meta.variants.slice(0, platforms.length * directionsPerPlatform);
+    for (let i = 0; i < plannedVariants.length; i++) {
+      const v = plannedVariants[i]!;
       try {
         const img = await generateImage(v.prompt, "generateVariants.image", {
           context: imageContext,
@@ -697,7 +707,9 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
         if (!error && row) created.push({ id: row.id });
       } catch (err) {
         console.error("variant gen failed", err);
+        failures.push(err instanceof Error ? err.message : String(err));
       }
+      if (i < plannedVariants.length - 1) await sleep(1200);
     }
 
     if (created.length > 0) {
@@ -713,8 +725,19 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
       }
     }
 
+    if (created.length === 0) {
+      await sb.from("campaigns").update({ status: "draft" }).eq("id", data.id);
+      const reason = failures[0] ?? "No variants were generated.";
+      throw new Error(`No variants were generated. ${reason}`);
+    }
+
     await sb.from("campaigns").update({ status: "ready" }).eq("id", data.id);
-    return { count: created.length };
+    return {
+      count: created.length,
+      planned: plannedVariants.length,
+      failed: failures.length,
+      sample_error: failures[0],
+    };
   });
 
 export const regenerateVariant = createServerFn({ method: "POST" })

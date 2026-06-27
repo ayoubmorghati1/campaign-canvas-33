@@ -1,4 +1,5 @@
-import type { AiErrorClass, AiProviderId } from "./types";
+import type { AiProviderId } from "./types";
+import type { AiErrorClass } from "./errors";
 
 export type AiLogEvent =
   | "ai.gateway.request"
@@ -9,8 +10,8 @@ export type AiLogEvent =
 
 export type AiLogPayload = {
   event: AiLogEvent;
-  operation: string;
-  capability: "text" | "image";
+  operation?: string;
+  capability?: "text" | "image";
   provider?: AiProviderId;
   attempt?: number;
   success?: boolean;
@@ -20,10 +21,11 @@ export type AiLogPayload = {
   fallbackTo?: AiProviderId;
   finalProvider?: AiProviderId;
   totalAttempts?: number;
+  fallbackUsed?: boolean;
   message?: string;
 };
 
-type AiLogger = {
+export type AiLogger = {
   log: (payload: AiLogPayload) => void;
 };
 
@@ -40,7 +42,7 @@ export const aiLogger: AiLogger = {
 export function createOperationLogger(operation: string, capability: "text" | "image"): AiLogger {
   return {
     log(payload) {
-      write({ operation, capability, ...payload });
+      write({ ...payload, operation, capability });
     },
   };
 }

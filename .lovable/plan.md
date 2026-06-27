@@ -1,18 +1,37 @@
 ## Why
 
-`AI_GATEWAY_MOCK=true` only lives in the local `.env`. The deployed Lovable Worker doesn't read that file, so it falls through to the real provider keys configured for the project and generates real images. Setting it as a runtime secret makes the Worker honor mock mode.
+Server logs prove the "0 variants · ready" state is caused by every image generation call failing with a 429 rate-limit from your OpenAI/Gemini providers. The current code fires variants back-to-back with no pacing, swallows each error in a `catch`, and still flips the campaign to `ready` — so the UI shows an empty "Generate" state instead of telling you anything blew up.
+
+This plan keeps your existing gateway (`src/server/ai/*` with OpenAI + Gemini SDKs) and fixes the three real bugs.
 
 ## Change
 
-1. Call `set_secret` with `AI_GATEWAY_MOCK=true`. This makes `process.env.AI_GATEWAY_MOCK` available in every server function on the deployed app.
-2. No code changes needed — `src/server/ai/config.ts` already reads `env.AI_GATEWAY_MOCK === "true"` and short-circuits the gateway to the mock provider (1×1 PNG + canned brief JSON).
+1. **Pace + retry per variant** — `src/lib/campaigns.functions.ts → generateVariants`
+   - Keep the loop sequential (already is) but add `await sleep(1200ms)` between variants.
+   - Wrap each `generateImage(...)` call in `withRetry` (already exists in `src/server/ai/retry.ts`) with `maxAttempts: 4`, `baseDelayMs: 2000`. It already classifies 429/5xx/timeout as retryable and backs off exponentially with jitter.
+   - Same treatment for `reframeVariant` and `regenerateVariant` so single-image actions stop dying on transient 429s.
 
-## How to flip it back later
+2. **Stop hiding failures** — same function
+   - Track `failures[]` next to `created[]`.
+   - If `created.length === 0`: set `status = "draft"` (not `"ready"`) and `throw toUserFacingError(lastError)` so the client receives a real error.
+   - If partial success: set `status = "ready"` and return `{ count, failed, sample_error }` so the UI can show "5 of 9 variants generated — rate limited, try again".
 
-When you want real generation again, either delete the secret (`delete_secret AI_GATEWAY_MOCK`) or update it to `false`. No code change required either way.
+3. **Surface the error in the UI** — `src/routes/studio.c.$id.index.tsx` (and the wizard call site if it lives elsewhere)
+   - Replace the silent success with a `toast.error(err.message)` on throw, and `toast.warning(...)` when `failed > 0`.
+   - Leave the "Generate" button enabled for retry.
+
+4. **Raise the gateway's own retry budget** — `src/server/ai/config.ts`
+   - Default `AI_GATEWAY_MAX_RETRIES` from `3` to `5` and `AI_GATEWAY_RETRY_BASE_MS` to `1500`. (Env vars still win.) This makes the existing in-provider retry loop survive normal Gemini/OpenAI throttling without app-level changes.
 
 ## Out of scope
 
-- No edits to `src/server/ai/*`, campaign functions, or UI.
-- Not touching the local `.env`.
-- Not adding a per-campaign demo toggle (separate feature).
+- Anything about mock mode, `AI_GATEWAY_MOCK`, or switching to Lovable AI Gateway.
+- Touching the provider adapters (`openai.ts` / `gemini.ts`) or the multimodal prompt shape.
+- DB migrations, UI redesign, or queueing/background jobs.
+
+## Technical notes
+
+- `withRetry` in `src/server/ai/retry.ts` already uses `classifyAiError` which marks 429 as `retryable: true` — no new classification needed.
+- `aspectForPlatform`, `imageContext`, and `uploadOutput` stay unchanged.
+- `sleep` helper is a 3-line `new Promise(r => setTimeout(r, ms))` colocated in `campaigns.functions.ts`.
+- No type changes leak to the client beyond the `{ count, failed?, sample_error? }` return shape.
