@@ -1,35 +1,18 @@
-## Add "How It Was Built" section to the landing page
+## Why
 
-Insert a new section in `src/routes/index.tsx` between `InsideStudio` and `FinalCTA`, matching the existing premium editorial aesthetic (warm paper background, ink type, violet/lime/clay accents, GlassCard, Chip, SectionLabel, MotionFadeUp primitives).
+`AI_GATEWAY_MOCK=true` only lives in the local `.env`. The deployed Lovable Worker doesn't read that file, so it falls through to the real provider keys configured for the project and generates real images. Setting it as a runtime secret makes the Worker honor mock mode.
 
-### Structure
+## Change
 
-```text
-<HowItWasBuilt />
-  ├── Section header (SectionLabel + serif title + muted subtitle)
-  ├── 2×2 grid of GlassCard
-  │   ├── Card 1 — Product Thinking (violet accent chip)
-  │   ├── Card 2 — AI Workflow (two-column list, footer note bar)
-  │   ├── Card 3 — One Decision I Overrode (clay accent chip)
-  │   └── Card 4 — Time Breakdown (3 stat tiles + caption)
-  ├── Tools Used (3 elegant cards: ChatGPT, Lovable, GitHub)
-  └── Explore the Code (GitHub repo CTA card → ayoubmorghati1/campaign-canvas-33)
-```
+1. Call `set_secret` with `AI_GATEWAY_MOCK=true`. This makes `process.env.AI_GATEWAY_MOCK` available in every server function on the deployed app.
+2. No code changes needed — `src/server/ai/config.ts` already reads `env.AI_GATEWAY_MOCK === "true"` and short-circuits the gateway to the mock provider (1×1 PNG + canned brief JSON).
 
-### Visual rules
+## How to flip it back later
 
-- Reuse existing primitives from `src/components/studio/primitives.tsx`: `GlassCard`, `Chip`, `SectionLabel`, `MotionFadeUp`, `PrimaryButton`. No new color tokens.
-- Typography: serif headings (`font-serif`), mono for labels/stats accent, sans body — same scale as `InsideStudio`/`FeatureExport`.
-- Cards: rounded-3xl, white/70 glass, soft shadow, subtle border, gentle hover lift (`hover:-translate-y-0.5 transition`).
-- Stat tiles in Card 4: large serif number, mono uppercase label below.
-- Two-column list in Card 2 uses a thin vertical divider on `md:` and stacks on mobile; footer note is a `bg-ink/[0.04]` pill strip.
-- Tools row: 3 equal cards with brand-style monogram square, role bullet list, muted border.
-- Repo CTA: full-width GlassCard, GitHub `lucide-react` icon in an ink square, title + subtitle left, `PrimaryButton` right opening the GitHub URL in a new tab (`target="_blank" rel="noreferrer"`).
-- Grid responsive: `grid-cols-1 md:grid-cols-2` for the 2×2; `grid-cols-1 sm:grid-cols-3` for tools and stats.
-- All entrance animations via `MotionFadeUp` with staggered delays, matching neighboring sections.
+When you want real generation again, either delete the secret (`delete_secret AI_GATEWAY_MOCK`) or update it to `false`. No code change required either way.
 
-### Files
+## Out of scope
 
-- `src/routes/index.tsx` — add `HowItWasBuilt` function component and render it between `<InsideStudio />` and `<FinalCTA />`. Add `Github` import from `lucide-react`. No other files change.
-
-No business logic, no new routes, no backend work.
+- No edits to `src/server/ai/*`, campaign functions, or UI.
+- Not touching the local `.env`.
+- Not adding a per-campaign demo toggle (separate feature).
