@@ -26,7 +26,7 @@ export type AiTextRequest = {
 export type AiImageRequest = {
   operation: string;
   prompt: string;
-  /** Product photo URLs first, then reference/style URLs — passed to image-edit APIs. */
+  /** Product photo URLs or data URLs — only the product, for image-edit APIs. */
   images?: string[];
 };
 
