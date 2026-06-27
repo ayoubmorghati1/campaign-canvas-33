@@ -676,6 +676,7 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
     }
     const meta = metaResult.data;
 
+    const { AiGatewayError } = await import("@/server/ai");
     const created: Array<{ id: string }> = [];
     const failures: string[] = [];
     const plannedVariants = meta.variants.slice(0, platforms.length * directionsPerPlatform);
@@ -708,6 +709,12 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
       } catch (err) {
         console.error("variant gen failed", err);
         failures.push(err instanceof Error ? err.message : String(err));
+        if (
+          err instanceof AiGatewayError &&
+          (err.code === "configuration" || err.code === "auth")
+        ) {
+          break;
+        }
       }
       if (i < plannedVariants.length - 1) await sleep(1200);
     }

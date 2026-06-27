@@ -62,6 +62,15 @@ describe("classifyAiError", () => {
     assert.equal(result.errorClass, "rate_limit");
   });
 
+  it("marks depleted credits as non-retryable configuration", () => {
+    const result = classifyAiError({
+      status: 429,
+      message: "Your prepayment credits are depleted. Please top up to keep using the API.",
+    });
+    assert.equal(result.retryable, false);
+    assert.equal(result.errorClass, "configuration");
+  });
+
   it("marks auth errors as non-retryable", () => {
     const result = classifyAiError(new AiGatewayError({ code: "auth", retryable: false, statusCode: 401 }));
     assert.equal(result.retryable, false);

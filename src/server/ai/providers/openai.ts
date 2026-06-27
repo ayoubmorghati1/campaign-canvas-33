@@ -34,7 +34,6 @@ export function createOpenAiProvider(apiKey: string): AiProviderAdapter {
     async generateImage(request: AiImageRequest, model: string) {
       try {
         const prompt = toGenerateImagePrompt(request);
-        const usesReferences = typeof prompt !== "string";
         const dimensions = request.aspectRatio
           ? imageDimensionsForAspect(request.aspectRatio)
           : undefined;
@@ -43,9 +42,6 @@ export function createOpenAiProvider(apiKey: string): AiProviderAdapter {
           prompt,
           maxRetries: 0,
           size: dimensions?.size,
-          providerOptions: usesReferences
-            ? { openai: { inputFidelity: "high" as const } }
-            : undefined,
         });
         return parseGeneratedImageFile(result.image);
       } catch (error) {

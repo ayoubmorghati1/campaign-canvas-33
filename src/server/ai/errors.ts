@@ -109,6 +109,15 @@ export function classifyAiError(error: unknown): ClassifiedAiError {
     return { retryable: false, errorClass: "content_policy", statusCode: status, message: messageOf(error) };
   }
 
+  if (
+    message.includes("credits are depleted") ||
+    message.includes("insufficient_quota") ||
+    message.includes("exceeded your current quota") ||
+    message.includes("billing")
+  ) {
+    return { retryable: false, errorClass: "configuration", statusCode: status, message: messageOf(error) };
+  }
+
   if (status === 429 || message.includes("rate limit") || message.includes("too many requests")) {
     return { retryable: true, errorClass: "rate_limit", statusCode: status, message: messageOf(error) };
   }
