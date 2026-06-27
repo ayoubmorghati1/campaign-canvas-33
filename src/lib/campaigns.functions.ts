@@ -420,7 +420,7 @@ async function generateAiImage(
   prompt: string,
   options?: ImageGenOptions,
 ): Promise<ImageGenResult> {
-  const { getAiGateway, toUserFacingError } = await import("@/server/ai");
+  const { getAiGateway, toUserFacingError, withRetry } = await import("@/server/ai");
   const context = options?.context;
   const sceneImage = options?.sceneImage;
   const productImages = context?.productImages ?? [];
@@ -435,11 +435,16 @@ async function generateAiImage(
       ? productAwareImagePrompt(prompt, context, { sceneImage })
       : prompt;
   try {
-    const result = await getAiGateway().generateImage({
-      operation,
-      prompt: finalPrompt,
-      images: images.length > 0 ? images : undefined,
-      aspectRatio: options?.aspectRatio,
+    const result = await withRetry({
+      maxAttempts: 4,
+      baseDelayMs: 2000,
+      fn: () =>
+        getAiGateway().generateImage({
+          operation,
+          prompt: finalPrompt,
+          images: images.length > 0 ? images : undefined,
+          aspectRatio: options?.aspectRatio,
+        }),
     });
     return { b64: result.b64, mime: result.mime };
   } catch (error) {
