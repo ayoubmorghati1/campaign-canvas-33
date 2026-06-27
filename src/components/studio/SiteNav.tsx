@@ -9,9 +9,9 @@ export function SiteNav() {
           <LogoMark />
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="hover:text-ink">Product</a>
-          <a href="#how" className="hover:text-ink">How it works</a>
-          <a href="#inside" className="hover:text-ink">Studio</a>
+          <a href="#product" className="hover:text-ink">Product</a>
+          <a href="#how-built" className="hover:text-ink">How it was built</a>
+          <a href="#code" className="hover:text-ink">Code</a>
         </nav>
         <div className="flex items-center gap-3">
           <ViolePillButton to="/studio">Open the studio</ViolePillButton>

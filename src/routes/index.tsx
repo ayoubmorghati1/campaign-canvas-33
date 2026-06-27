@@ -1,780 +1,280 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Wand2, Layers3, Compass, Check, Github, Zap } from "lucide-react";
-import { HeroPreview } from "@/components/studio/HeroPreview";
+import { ArrowRight, Check, Github } from "lucide-react";
 import { SiteFooter, SiteNav } from "@/components/studio/SiteNav";
-import {
-  Chip,
-  GlassCard,
-  MotionFadeUp,
-  PrimaryButton,
-  SecondaryButton,
-  SectionLabel,
-  StatusDot,
-} from "@/components/studio/primitives";
+import { GlassCard, PrimaryButton, SectionLabel } from "@/components/studio/primitives";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Campaign Studio — Your AI Creative Director" },
-      { name: "description", content: "Upload your product. Show us the vibe. Ship a launch-ready marketing campaign in minutes — visuals, captions, and platform variants, all on-brand." },
-      { property: "og:title", content: "Campaign Studio — Your AI Creative Director" },
-      { property: "og:description", content: "Not an image generator. A creative director. From product photo to complete campaign in under 2 minutes." },
+      { title: "Campaign Studio — Engineering Submission" },
+      {
+        name: "description",
+        content:
+          "Campaign Studio: an AI Creative Director for product marketing. Custom AI gateway with retry, failover, and structured logging.",
+      },
     ],
   }),
-  component: LandingPage,
+  component: SubmissionPage,
 });
 
-function LandingPage() {
+const ENGINEERING_ITEMS = [
+  "Custom AI Gateway",
+  "OpenAI + Gemini Providers",
+  "Retry + Exponential Backoff",
+  "Provider Failover",
+  "Normalized Responses",
+  "Structured Logging",
+  "User-safe Errors",
+  "30 Gateway Tests Passing",
+] as const;
+
+const GATEWAY_TOPICS = [
+  {
+    title: "AI Gateway",
+    copy: "Single abstraction layer for all AI requests — text, vision, and image generation.",
+  },
+  {
+    title: "Retry Logic",
+    copy: "Automatic retries using exponential backoff on transient provider failures.",
+  },
+  {
+    title: "Provider Failover",
+    copy: "Primary provider exhaustion triggers fallback (OpenAI ↔ Gemini) without frontend changes.",
+  },
+  {
+    title: "Normalized Responses",
+    copy: "The frontend receives one consistent response shape regardless of which provider served the request.",
+  },
+  {
+    title: "Structured Logging",
+    copy: "JSON logs for retries, latency, provider selection, and failures — one line per event.",
+  },
+  {
+    title: "User-safe Errors",
+    copy: "Internal provider errors are converted into safe, actionable messages for the UI.",
+  },
+  {
+    title: "Configuration",
+    copy: "Models, primary provider, retry limits, and mock mode — all via environment variables.",
+  },
+] as const;
+
+function SubmissionPage() {
   return (
-    <div className="min-h-screen overflow-hidden bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink">
       <SiteNav />
-      <Hero />
-      <HowItWorks />
-      <FeatureDirector />
-      <FeatureDNA />
-      <FeatureExplain />
-      <FeatureInspector />
-      <FeatureExport />
-      <InsideStudio />
-      <HowItWasBuilt />
-      <FinalCTA />
+      <main className="mx-auto max-w-3xl px-6 pt-16 pb-8 md:pt-24">
+        <header className="mb-20 border-b border-border pb-12">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            Engineering submission
+          </p>
+          <h1 className="mt-3 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
+            Campaign <span className="italic text-violet">Studio</span>
+          </h1>
+          <p className="mt-4 max-w-xl text-muted-foreground">
+            Product demo and backend engineering overview for review.
+          </p>
+          <div className="mt-6">
+            <PrimaryButton to="/studio">
+              Open the studio <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </PrimaryButton>
+          </div>
+        </header>
+
+        <SectionProduct />
+        <SectionHowBuilt />
+        <SectionCode />
+      </main>
       <SiteFooter />
     </div>
   );
 }
 
-/* ---------- HERO ---------- */
-function Hero() {
+function SectionProduct() {
   return (
-    <section className="relative">
-      <div aria-hidden className="bloom-violet pointer-events-none absolute -top-32 -left-40 size-[640px] rounded-full opacity-50" />
-      <div aria-hidden className="bloom-lime pointer-events-none absolute top-20 -right-32 size-[480px] rounded-full opacity-40" />
-      <div aria-hidden className="bloom-clay pointer-events-none absolute top-[420px] left-1/3 size-[420px] rounded-full opacity-30" />
+    <section id="product" className="scroll-mt-24 pb-20">
+      <SectionLabel>Product</SectionLabel>
+      <h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight md:text-5xl">
+        An AI Creative Director — not an image generator.
+      </h2>
 
-      <div className="relative mx-auto grid max-w-7xl gap-12 px-6 pt-20 pb-24 lg:grid-cols-[1.05fr_1.1fr] lg:gap-16">
-        <div>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground backdrop-blur"
-          >
-            <StatusDot tone="lime" /> Now shipping · Director v2
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.05 }}
-            className="font-serif text-[64px] leading-[0.95] tracking-tight text-balance md:text-[88px]"
-          >
-            Build your next <span className="italic text-violet">campaign</span><br />
-            in minutes, not weeks.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground"
-          >
-            Campaign Studio is your <em className="font-serif text-ink not-italic">AI Creative Director</em>.
-            Upload your product, show us the vibe, and ship a complete launch —
-            visuals, captions, and every platform variant — on-brand and on-time.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
-            className="mt-8 flex flex-wrap items-center gap-3"
-          >
-            <PrimaryButton to="/studio">
-              Open the studio <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-            </PrimaryButton>
-            <SecondaryButton to="/studio/new">
-              <Sparkles className="size-4 text-violet" /> Try the wizard
-            </SecondaryButton>
-          </motion.div>
-
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="relative"
-        >
-          <HeroPreview />
-        </motion.div>
+      <div className="mt-8 space-y-5 text-base leading-relaxed text-muted-foreground">
+        <p>
+          Campaign Studio is a product marketing workspace built around creative direction. Founders
+          upload a product photo and reference images; the AI studies the shared visual language and
+          writes a real creative brief — goal, audience, palette, mood, and visual direction — that
+          becomes the source of truth for every asset downstream.
+        </p>
+        <p>
+          From that brief, the Director generates campaign directions: platform-specific variants
+          with editorial titles, mood captions, match scores, and reasoning. Director chat lets you
+          steer the campaign in plain language. Reframe adapts any variant to another platform aspect
+          — IG Feed, Story, LinkedIn, and more — while preserving the product and palette.
+        </p>
+        <p>
+          The product is intentionally workflow-first: campaigns, workspaces, explainability, and
+          variants — not isolated generations. Every decision is narrated so teams trust the output
+          before they ship.
+        </p>
       </div>
+
+      <GlassCard className="mt-8 p-6 md:p-8">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Core workflow
+        </div>
+        <ul className="mt-4 space-y-2.5 text-sm text-ink">
+          {[
+            "Upload product + reference images",
+            "AI analyzes references → Creative Brief",
+            "Generate campaign directions + platform variants",
+            "Director chat for iterative steering",
+            "Reframe for different platforms",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2.5">
+              <Check className="mt-0.5 size-4 shrink-0 text-violet" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </GlassCard>
     </section>
   );
 }
 
-
-/* ---------- HOW IT WORKS ---------- */
-function HowItWorks() {
-  const steps = [
-    {
-      n: "01",
-      label: "Upload",
-      title: "Drop your product and the vibe.",
-      copy: "Hand the AI your product shots and the references you wish your campaign looked like.",
-      tone: "violet",
-      icon: <Layers3 className="size-5" />,
-    },
-    {
-      n: "02",
-      label: "Analyze",
-      title: "It studies your taste.",
-      copy: "Composition, lighting, palette, typography, positioning — extracted into a Creative Brief you can edit.",
-      tone: "lime",
-      icon: <Compass className="size-5" />,
-    },
-    {
-      n: "03",
-      label: "Generate",
-      title: "Ship a full campaign.",
-      copy: "Visuals, captions, CTAs, and platform variants — all on-brand, all ready to export.",
-      tone: "clay",
-      icon: <Wand2 className="size-5" />,
-    },
-  ] as const;
-
+function SectionHowBuilt() {
   return (
-    <section id="how" className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp className="max-w-3xl">
-        <SectionLabel>How it works</SectionLabel>
-        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
-          Three steps. <span className="italic text-clay">Zero blank pages.</span>
-        </h2>
-      </MotionFadeUp>
+    <section id="how-built" className="scroll-mt-24 border-t border-border py-20">
+      <SectionLabel>How it was built</SectionLabel>
+      <h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight md:text-5xl">
+        Custom backend replacing the managed AI layer.
+      </h2>
+      <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
+        The original prototype routed AI through Lovable&apos;s managed gateway. For this engineering
+        review, that layer was replaced with a code-first implementation: provider adapters, retries,
+        failover, normalized responses, and structured logging — without changing the Campaign Studio
+        frontend or UX.
+      </p>
 
-      <div className="mt-12 grid gap-5 md:grid-cols-3">
-        {steps.map((s, i) => (
-          <MotionFadeUp key={s.n} delay={i * 0.1}>
-            <div className="group relative h-full overflow-hidden rounded-3xl border border-border bg-white p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-glow">
-              <div className="mb-6 flex items-center justify-between">
-                <div className={`grid size-10 place-items-center rounded-xl ${s.tone === "violet" ? "bg-violet/10 text-violet" : s.tone === "lime" ? "bg-lime/40 text-ink" : "bg-clay/15 text-clay"}`}>
-                  {s.icon}
-                </div>
-                <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{s.n} · {s.label}</span>
-              </div>
-              <h3 className="font-serif text-2xl leading-snug">{s.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{s.copy}</p>
-              <div aria-hidden className={`pointer-events-none absolute -bottom-14 -right-10 size-40 rounded-full opacity-50 ${s.tone === "violet" ? "bloom-violet" : s.tone === "lime" ? "bloom-lime" : "bloom-clay"}`} />
-            </div>
-          </MotionFadeUp>
+      <GlassCard className="mt-10 overflow-hidden p-6 font-mono text-[13px] leading-relaxed md:p-8">
+        <div className="text-muted-foreground">Architecture</div>
+        <div className="mt-4 space-y-1 text-ink">
+          <div>Frontend</div>
+          <div className="text-muted-foreground">↓</div>
+          <div>Server Functions</div>
+          <div className="text-muted-foreground">↓</div>
+          <div className="font-medium text-violet">Custom AI Gateway</div>
+          <div className="text-muted-foreground">↓</div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <span>OpenAI</span>
+            <span>Gemini</span>
+          </div>
+          <div className="text-muted-foreground">↓</div>
+          <div className="text-muted-foreground">
+            Retry · Failover · Normalization · Structured Logging
+          </div>
+        </div>
+      </GlassCard>
+
+      <blockquote className="mt-6 border-l-2 border-violet/40 pl-5 text-sm leading-relaxed text-muted-foreground">
+        <span className="font-medium text-ink">Engineering update:</span> The original prototype used
+        Lovable&apos;s managed AI gateway. For the engineering review, that layer was replaced with a
+        custom gateway implementing provider abstraction, retries, failover, and structured logging.
+      </blockquote>
+
+      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        {GATEWAY_TOPICS.map((topic) => (
+          <GlassCard key={topic.title} className="p-5">
+            <h3 className="font-serif text-lg text-ink">{topic.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{topic.copy}</p>
+          </GlassCard>
         ))}
       </div>
+
+      <GlassCard className="mt-10 bg-ink p-6 text-paper md:p-8">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-paper/60">
+          Engineering summary
+        </div>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {ENGINEERING_ITEMS.map((item) => (
+            <li key={item} className="flex items-center gap-2 text-sm">
+              <Check className="size-4 shrink-0 text-lime" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </GlassCard>
     </section>
   );
 }
 
-/* ---------- FEATURE: DIRECTOR ---------- */
-function FeatureDirector() {
+function SectionCode() {
   return (
-    <section id="features" className="mx-auto max-w-7xl px-6 py-24">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <MotionFadeUp>
-          <SectionLabel>AI Creative Director</SectionLabel>
-          <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight">
-            It doesn't <span className="line-through opacity-40">generate</span>. <br />
-            It <span className="italic text-violet">decides</span>.
-          </h2>
-          <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-            Every prompt-based tool produces "Image #1." Campaign Studio thinks
-            in brand systems — it reads your references, names what it sees,
-            and explains why it made every choice.
-          </p>
-          <ul className="mt-8 space-y-3 text-sm">
+    <section id="code" className="scroll-mt-24 border-t border-border py-20">
+      <SectionLabel>Code</SectionLabel>
+      <h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight md:text-5xl">
+        Public repository
+      </h2>
+      <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
+        The complete source is on GitHub — gateway implementation, provider adapters, retry layer,
+        structured logging, and tests. Campaign Studio UX and server function contracts are unchanged;
+        only the AI transport layer was rebuilt.
+      </p>
+
+      <GlassCard className="mt-8 p-6 md:p-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-ink text-paper">
+              <Github className="size-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                GitHub
+              </div>
+              <div className="mt-1 font-serif text-2xl tracking-tight">campaign-canvas-33</div>
+              <div className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                github.com/ayoubmorghati1/campaign-canvas-33
+              </div>
+            </div>
+          </div>
+          <a
+            href="https://github.com/ayoubmorghati1/campaign-canvas-33"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-paper transition-colors hover:bg-ink/90"
+          >
+            View on GitHub
+            <ArrowRight className="size-4" />
+          </a>
+        </div>
+
+        <div className="mt-8 border-t border-border pt-6">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Repository includes
+          </div>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {[
-              "Names the mood, palette, and visual hierarchy in plain English",
-              "Edits its own brief — you stay in the driver's seat",
-              "Confidence score on every direction it recommends",
-            ].map((t) => (
-              <li key={t} className="flex items-start gap-3">
-                <Check className="mt-0.5 size-4 text-violet" /> {t}
+              "Gateway implementation (`src/server/ai/`)",
+              "OpenAI + Gemini provider adapters",
+              "Retry + exponential backoff",
+              "Structured JSON logging",
+              "30 passing gateway tests",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-ink">
+                <Check className="mt-0.5 size-4 shrink-0 text-violet" />
+                {item}
               </li>
             ))}
           </ul>
-        </MotionFadeUp>
-
-        <MotionFadeUp delay={0.15}>
-          <GlassCard className="p-5">
-            <div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <span className="flex items-center gap-2"><StatusDot /> director · thinking</span>
-              <span>96% conf</span>
-            </div>
-            <div className="space-y-3 rounded-2xl bg-ink p-5 font-mono text-[12.5px] text-paper/90">
-              {[
-                "› Reading reference set (6 images)",
-                "› Detected: editorial composition, soft side-light",
-                "› Palette: warm stone · olive · cream",
-                "› Type: serif display + small caps caption",
-                "› Position: premium ritual / quiet confidence",
-                "› Brief assembled. Awaiting your approval ✦",
-              ].map((l) => (
-                <motion.div key={l} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="flex gap-2">
-                  <span className="text-lime">✓</span>
-                  <span>{l}</span>
-                </motion.div>
-              ))}
-            </div>
-          </GlassCard>
-        </MotionFadeUp>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- FEATURE: CAMPAIGN DNA ---------- */
-function FeatureDNA() {
-  return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <MotionFadeUp delay={0.1} className="order-2 lg:order-1">
-          <div className="relative rounded-[32px] border border-border bg-white p-6 shadow-soft">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Campaign DNA</span>
-              <Chip tone="violet" dot>fingerprint · v1</Chip>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { l: "Mood", v: "Calm Confidence", tone: "muted" },
-                { l: "Emotion", v: "Quiet Luxury", tone: "violet" },
-                { l: "Audience", v: "Premium Buyers", tone: "muted" },
-                { l: "Voice", v: "Editorial", tone: "lime" },
-              ].map((d) => (
-                <div key={d.l} className="rounded-2xl bg-paper p-4">
-                  <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{d.l}</div>
-                  <div className="font-serif text-xl italic">{d.v}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-ink p-4 text-paper">
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-widest opacity-60">palette</div>
-                <div className="mt-2 flex gap-1.5">
-                  {["#E8E1D6", "#C9B99A", "#4F6D58", "#1C1C1C", "#F2E3D5", "#B87352"].map((c) => (
-                    <span key={c} className="size-7 rounded-full ring-2 ring-paper/20" style={{ background: c }} />
-                  ))}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono text-[10px] uppercase tracking-widest opacity-60">match</div>
-                <div className="font-serif text-4xl">96%</div>
-              </div>
-            </div>
-          </div>
-        </MotionFadeUp>
-
-        <MotionFadeUp className="order-1 lg:order-2">
-          <SectionLabel>Campaign DNA</SectionLabel>
-          <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight">
-            Every campaign gets a <span className="italic text-clay">fingerprint</span>.
-          </h2>
-          <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-            Mood, palette, typography, audience, voice, confidence — captured
-            as tactile tokens you can hand to a designer, a developer, or your
-            agency.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {["Stone", "Cream", "Olive", "Editorial", "Organic Luxury", "Quiet"].map((c) => (
-              <Chip key={c} tone={c === "Olive" ? "lime" : c === "Editorial" ? "violet" : c === "Stone" ? "clay" : "muted"}>{c}</Chip>
-            ))}
-          </div>
-        </MotionFadeUp>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- FEATURE: EXPLAIN ---------- */
-function FeatureExplain() {
-  return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="relative overflow-hidden rounded-[40px] border border-border bg-ink p-12 text-paper md:p-16">
-        <div aria-hidden className="bloom-violet pointer-events-none absolute -top-32 -right-20 size-[480px] rounded-full opacity-60" />
-        <div aria-hidden className="bloom-lime pointer-events-none absolute -bottom-40 -left-10 size-[440px] rounded-full opacity-50" />
-        <div className="relative grid items-center gap-12 lg:grid-cols-2">
-          <MotionFadeUp>
-            <SectionLabel className="text-paper/70">Explain this campaign</SectionLabel>
-            <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight">
-              Trust the AI <span className="italic text-lime">because it shows its work</span>.
-            </h2>
-            <p className="mt-5 max-w-md text-lg text-paper/70">
-              Tap any campaign and Campaign Studio narrates the creative
-              decisions out loud — why this lighting, why this caption length,
-              why LinkedIn gets a longer hook than Instagram.
-            </p>
-          </MotionFadeUp>
-
-          <MotionFadeUp delay={0.15}>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-              <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-paper/60">
-                <span className="grid size-6 place-items-center rounded-full bg-lime text-ink">✦</span>
-                Director's note
-              </div>
-              <p className="font-serif text-2xl leading-snug italic text-paper">
-                "We preserved the warm editorial lighting from your references
-                while simplifying the composition to maximize product focus.
-                Instagram uses a shorter CTA; LinkedIn expands the
-                storytelling because that audience reads more before clicking."
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Chip tone="lime" dot>96% confidence</Chip>
-                <Chip tone="violet">3 alt directions saved</Chip>
-              </div>
-            </div>
-          </MotionFadeUp>
         </div>
-      </div>
-    </section>
-  );
-}
+      </GlassCard>
 
-/* ---------- FEATURE: INSPECTOR ---------- */
-function FeatureInspector() {
-  return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
-        <MotionFadeUp>
-          <SectionLabel>Inspiration Inspector</SectionLabel>
-          <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight">
-            See what the AI <span className="italic text-violet">saw</span>.
-          </h2>
-          <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-            Hover any reference image to surface the lighting, composition,
-            palette, and product placement Campaign Studio learned from it.
-            Inspection turns "the AI did something" into "the AI did this,
-            here's why."
-          </p>
-        </MotionFadeUp>
-
-        <MotionFadeUp delay={0.15}>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[32px] border border-border bg-gradient-to-br from-stone-200 via-stone-100 to-clay/20 shadow-soft">
-            <div className="absolute inset-0 bg-[radial-gradient(120%_60%_at_50%_0%,oklch(0.95_0.05_85)_0%,transparent_60%)]" />
-            {/* fake product silhouette */}
-            <div className="absolute left-1/2 top-1/2 h-2/3 w-[24%] -translate-x-1/2 -translate-y-1/2 rounded-[40%] bg-gradient-to-b from-stone-50 via-stone-200 to-stone-400 shadow-2xl" />
-            {/* hotspots */}
-            {[
-              { top: "18%", left: "20%", label: "Soft side-light", tone: "violet" },
-              { top: "62%", left: "70%", label: "Stone surface", tone: "clay" },
-              { top: "38%", left: "55%", label: "Rule of thirds", tone: "lime" },
-            ].map((h) => (
-              <div key={h.label} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ top: h.top, left: h.left }}>
-                <div className="relative">
-                  <span className={`absolute inset-0 animate-ping rounded-full opacity-50 ${h.tone === "violet" ? "bg-violet" : h.tone === "lime" ? "bg-lime" : "bg-clay"}`} />
-                  <span className={`relative grid size-6 place-items-center rounded-full text-[10px] font-bold text-white ring-4 ring-white/40 ${h.tone === "violet" ? "bg-violet" : h.tone === "lime" ? "bg-lime text-ink" : "bg-clay"}`}>+</span>
-                </div>
-                <div className="mt-1.5 whitespace-nowrap rounded-md bg-ink px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-paper">
-                  {h.label}
-                </div>
-              </div>
-            ))}
-            <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 font-mono text-[10px] uppercase tracking-widest backdrop-blur">
-              reference · pinterest/ritual-12
-            </div>
-          </div>
-        </MotionFadeUp>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- FEATURE: EXPORT ---------- */
-function FeatureExport() {
-  const variants = [
-    { name: "IG Feed", w: "aspect-square" },
-    { name: "IG Story", w: "aspect-[9/16]" },
-    { name: "LinkedIn", w: "aspect-[1.91/1]" },
-    { name: "X", w: "aspect-[16/9]" },
-    { name: "Pinterest", w: "aspect-[2/3]" },
-  ];
-  return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp className="mx-auto max-w-3xl text-center">
-        <SectionLabel className="justify-center">Multi-platform export</SectionLabel>
-        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
-          One campaign. <span className="italic text-violet">Every surface.</span>
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-          The AI rewrites the caption, retunes the CTA, and recrops the visual
-          for every platform — so your brand stays consistent and your work
-          stays light.
-        </p>
-      </MotionFadeUp>
-
-      <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-5">
-        {variants.map((v, i) => (
-          <MotionFadeUp key={v.name} delay={i * 0.06}>
-            <div className="group rounded-2xl border border-border bg-white p-3 shadow-soft transition-all hover:-translate-y-1 hover:shadow-glow">
-              <div className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-br ${i % 3 === 0 ? "from-stone-200 to-stone-300" : i % 3 === 1 ? "from-violet/15 via-violet/10 to-lime/30" : "from-clay/20 to-stone-200"} ${v.w}`}>
-                <div className="absolute right-2 bottom-2 rounded-full bg-white/80 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest">{v.name}</div>
-              </div>
-            </div>
-          </MotionFadeUp>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ---------- INSIDE THE STUDIO ---------- */
-function InsideStudio() {
-  return (
-    <section id="inside" className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp className="max-w-3xl">
-        <SectionLabel>Inside the studio</SectionLabel>
-        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
-          A real workspace, not a <span className="italic text-clay">prompt box</span>.
-        </h2>
-        <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-          Brand Kits, project history, side-by-side variants, and an inspector
-          that explains every decision. Built for teams that ship every week.
-        </p>
-      </MotionFadeUp>
-
-      <MotionFadeUp delay={0.15} className="mt-12">
-        <div className="relative overflow-hidden rounded-[32px] border border-border bg-white shadow-soft">
-          <div aria-hidden className="bloom-violet pointer-events-none absolute -top-10 right-0 size-72 rounded-full opacity-30" />
-          {/* mini chrome */}
-          <div className="flex items-center gap-3 border-b border-border bg-paper px-5 py-3">
-            <div className="flex gap-1.5">
-              <span className="size-2.5 rounded-full bg-clay/70" />
-              <span className="size-2.5 rounded-full bg-lime/70" />
-              <span className="size-2.5 rounded-full bg-violet/70" />
-            </div>
-            <div className="ml-2 rounded-full bg-white px-3 py-1 font-mono text-[11px] text-muted-foreground">
-              studio.campaign-studio.app / nordh / morning-ritual
-            </div>
-          </div>
-          {/* fake app grid */}
-          <div className="grid min-h-[480px] grid-cols-[200px_1fr_280px]">
-            {/* sidebar */}
-            <div className="border-r border-border bg-paper/60 p-4">
-              <div className="mb-4 flex items-center justify-between rounded-lg bg-white p-2 shadow-soft">
-                <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-md bg-gradient-to-br from-violet to-clay" />
-                  <div className="text-xs font-medium">NORDH</div>
-                </div>
-                <span className="font-mono text-[9px] text-muted-foreground">brand</span>
-              </div>
-              <div className="space-y-1 text-xs">
-                {[
-                  { l: "Projects", a: true },
-                  { l: "New campaign", a: false },
-                  { l: "Brand Kits", a: false },
-                  { l: "Explorations", a: false },
-                  { l: "Exports", a: false },
-                ].map((i) => (
-                  <div key={i.l} className={`flex items-center justify-between rounded-md px-2 py-1.5 ${i.a ? "bg-ink text-paper" : "text-muted-foreground hover:bg-white"}`}>
-                    <span>{i.l}</span>
-                    {i.a && <span className="font-mono text-[9px] opacity-70">·</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* canvas */}
-            <div className="bg-paper p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">project</div>
-                  <div className="font-serif text-2xl italic">Morning Ritual</div>
-                </div>
-                <div className="flex gap-2">
-                  <Chip tone="muted">3 directions</Chip>
-                  <Chip tone="violet" dot>auto-saving</Chip>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="rounded-xl bg-white p-2 shadow-soft">
-                    <div className={`aspect-square w-full rounded-lg bg-gradient-to-br ${i % 3 === 0 ? "from-stone-200 to-stone-300" : i % 3 === 1 ? "from-violet/20 to-lime/30" : "from-clay/20 to-stone-200"}`} />
-                    <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-                      <span>v{i + 1}</span>
-                      <span>9{6 - i}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* inspector */}
-            <div className="border-l border-border bg-white/80 p-5 backdrop-blur">
-              <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Creative Brief</div>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">mood</div>
-                  <div className="font-serif text-lg italic">Calm Confidence</div>
-                </div>
-                <div>
-                  <div className="mb-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">brand voice</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Minimal", "Luxury", "Editorial", "Bold"].map((v, i) => (
-                      <Chip key={v} tone={i === 2 ? "violet" : "muted"}>{v}</Chip>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="mb-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">creative freedom</div>
-                  <div className="relative h-1.5 w-full rounded-full bg-muted">
-                    <div className="absolute inset-y-0 left-0 w-2/3 rounded-full bg-gradient-to-r from-violet to-clay" />
-                    <div className="absolute left-2/3 top-1/2 size-3.5 -translate-y-1/2 rounded-full border-2 border-violet bg-white shadow" />
-                  </div>
-                  <div className="mt-1 flex justify-between font-mono text-[9px] uppercase text-muted-foreground"><span>safe</span><span>wild</span></div>
-                </div>
-                <button className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink py-2 text-xs font-medium text-paper">✦ Remix campaign</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </MotionFadeUp>
-    </section>
-  );
-}
-
-
-/* ---------- HOW IT WAS BUILT ---------- */
-function HowItWasBuilt() {
-  const aiAccelerated = [
-    "UI prototyping",
-    "Frontend implementation",
-    "Component generation",
-    "Copy refinement",
-    "Iteration",
-    "Debugging",
-  ];
-  const humanDecisions = [
-    "Product positioning",
-    "UX",
-    "Information architecture",
-    "Feature prioritization",
-    "Interaction design",
-    "Creative direction",
-  ];
-  const stats = [
-    { value: "~4 Hours", label: "Total build time" },
-    { value: "~2 Hours", label: "Product thinking & review" },
-    { value: "~2 Hours", label: "AI-assisted implementation" },
-  ];
-  const tools = [
-    {
-      name: "ChatGPT",
-      mono: "GPT",
-      tone: "violet" as const,
-      roles: ["Product strategy", "UX thinking", "Product decisions", "Copywriting", "Feature prioritization", "Iteration"],
-    },
-    {
-      name: "Lovable",
-      mono: "LV",
-      tone: "clay" as const,
-      roles: ["Rapid implementation", "Frontend generation", "Supabase integration", "AI workflow", "Deployment"],
-    },
-    {
-      name: "GitHub",
-      mono: "GH",
-      tone: "lime" as const,
-      roles: ["Version control", "Public source code"],
-    },
-  ];
-
-  return (
-    <section id="how-built" className="mx-auto max-w-7xl px-6 py-24">
-      <MotionFadeUp className="max-w-3xl">
-        <SectionLabel>How it was built</SectionLabel>
-        <h2 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight md:text-6xl">
-          Built with an <span className="italic text-violet">AI-first</span> workflow.
-        </h2>
-        <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-          Campaign Studio was built using an AI-first workflow. Rather than spending time writing every component manually, I focused on product thinking, UX, interaction design, and creative direction while using AI to dramatically accelerate implementation.
-        </p>
-      </MotionFadeUp>
-
-      {/* 2x2 grid */}
-      <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-2">
-        {/* Card 1 */}
-        <MotionFadeUp delay={0.05}>
-          <GlassCard className="h-full p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
-            <Chip tone="violet" dot>01 · Product Thinking</Chip>
-            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
-              "What would a Creative Director actually do?"
-            </h3>
-            <p className="mt-4 text-muted-foreground">
-              Instead of approaching the challenge as another AI image generator, I started with a different question. That became the core product thesis.
-            </p>
-            <p className="mt-3 text-muted-foreground">
-              The experience was intentionally designed around <span className="text-ink">campaigns</span> rather than isolated generations. Workspaces, campaign variants, creative analysis, and explainability all support that philosophy.
-            </p>
-          </GlassCard>
-        </MotionFadeUp>
-
-        {/* Card 2 */}
-        <MotionFadeUp delay={0.1}>
-          <GlassCard className="flex h-full flex-col p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
-            <Chip tone="lime" dot>02 · AI Workflow</Chip>
-            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
-              Acceleration, with intent.
-            </h3>
-            <div className="mt-6 grid flex-1 grid-cols-1 gap-6 md:grid-cols-2 md:divide-x md:divide-border">
-              <div className="md:pr-6">
-                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AI accelerated</div>
-                <ul className="space-y-2 text-sm text-ink">
-                  {aiAccelerated.map((i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Zap className="size-3.5 text-violet" />
-                      {i}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="md:pl-6">
-                <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Human decisions</div>
-                <ul className="space-y-2 text-sm text-ink">
-                  {humanDecisions.map((i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Check className="size-3.5 text-clay" />
-                      {i}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="mt-6 rounded-2xl bg-ink/[0.04] px-4 py-3 text-sm italic text-ink">
-              "AI accelerated execution. Human judgment shaped the product."
-            </div>
-          </GlassCard>
-        </MotionFadeUp>
-
-        {/* Card 3 */}
-        <MotionFadeUp delay={0.15}>
-          <GlassCard className="h-full p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
-            <Chip tone="clay" dot>03 · One decision I overrode</Chip>
-            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
-              Reframed from generator to <span className="italic">Creative Director</span>.
-            </h3>
-            <p className="mt-4 text-muted-foreground">
-              The challenge naturally pushed toward building a traditional AI image generator. I intentionally reframed the experience around an AI Creative Director instead — introducing campaigns, workspaces, variants, explainability, and creative reasoning.
-            </p>
-            <p className="mt-3 text-muted-foreground">
-              I believed users think in campaigns rather than isolated generations, so I optimized the entire workflow around that idea.
-            </p>
-          </GlassCard>
-        </MotionFadeUp>
-
-        {/* Card 4 */}
-        <MotionFadeUp delay={0.2}>
-          <GlassCard className="flex h-full flex-col p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
-            <Chip tone="ink" dot>04 · Time breakdown</Chip>
-            <h3 className="mt-5 font-serif text-3xl leading-tight tracking-tight">
-              Optimized for quality, not lines of code.
-            </h3>
-            <div className="mt-6 grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-              {stats.map((s) => (
-                <div key={s.label} className="rounded-2xl border border-border bg-white/70 p-5">
-                  <div className="font-serif text-3xl tracking-tight text-ink">{s.value}</div>
-                  <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{s.label}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              The goal was not to maximize code written. The goal was to maximize product quality, UX, and execution within the time constraint.
-            </p>
-          </GlassCard>
-        </MotionFadeUp>
-      </div>
-
-      {/* Tools used */}
-      <MotionFadeUp delay={0.1} className="mt-20">
-        <SectionLabel>Tools used</SectionLabel>
-        <h3 className="mt-3 font-serif text-3xl tracking-tight md:text-4xl">A small, sharp stack.</h3>
-      </MotionFadeUp>
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        {tools.map((t, i) => (
-          <MotionFadeUp key={t.name} delay={0.1 + i * 0.05}>
-            <GlassCard className="h-full p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow">
-              <div className="flex items-center gap-3">
-                <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-ink font-mono text-[11px] font-semibold text-paper">
-                  {t.mono}
-                </div>
-                <div className="font-serif text-2xl tracking-tight">{t.name}</div>
-              </div>
-              <div className="mt-5 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Role</div>
-              <ul className="space-y-1.5 text-sm text-ink">
-                {t.roles.map((r) => (
-                  <li key={r} className="flex items-start gap-2">
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-ink/40" />
-                    {r}
-                  </li>
-                ))}
-              </ul>
-            </GlassCard>
-          </MotionFadeUp>
-        ))}
-      </div>
-
-      {/* Explore the code */}
-      <MotionFadeUp delay={0.15} className="mt-20">
-        <SectionLabel>Explore the code</SectionLabel>
-        <h3 className="mt-3 max-w-2xl font-serif text-3xl tracking-tight md:text-4xl">
-          The complete source code for Campaign Studio is available publicly on GitHub.
-        </h3>
-      </MotionFadeUp>
-      <MotionFadeUp delay={0.2} className="mt-8">
-        <GlassCard className="group relative overflow-hidden p-8 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-glow md:p-10">
-          <div aria-hidden className="bloom-lime pointer-events-none absolute -right-20 -top-20 size-72 rounded-full opacity-40" />
-          <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 sm:flex sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-5">
-              <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink text-paper">
-                <Github className="size-7" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Repository</div>
-                <div className="truncate font-serif text-2xl tracking-tight md:text-3xl">Campaign Studio</div>
-                <div className="mt-1 truncate font-mono text-xs text-muted-foreground">github.com/ayoubmorghati1/campaign-canvas-33</div>
-              </div>
-            </div>
-            <a
-              href="https://github.com/ayoubmorghati1/campaign-canvas-33"
-              target="_blank"
-              rel="noreferrer"
-              className="group/btn inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-paper shadow-soft transition-all hover:bg-ink/90 active:scale-[0.98]"
-            >
-              View source code
-              <ArrowRight className="size-4 transition-transform group-hover/btn:translate-x-0.5" />
-            </a>
-          </div>
-        </GlassCard>
-      </MotionFadeUp>
-    </section>
-  );
-}
-
-/* ---------- FINAL CTA ---------- */
-function FinalCTA() {
-  return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="relative overflow-hidden rounded-[40px] bg-ink p-16 text-paper md:p-24">
-        <div aria-hidden className="bloom-violet pointer-events-none absolute -top-20 -left-10 size-[520px] rounded-full opacity-70" />
-        <div aria-hidden className="bloom-lime pointer-events-none absolute -bottom-20 right-10 size-[420px] rounded-full opacity-60" />
-        <div className="relative max-w-3xl">
-          <h2 className="font-serif text-5xl leading-[0.98] tracking-tight md:text-7xl">
-            Your next campaign is <span className="italic text-lime">waiting</span>.
-          </h2>
-          <p className="mt-6 max-w-xl text-lg text-paper/70">
-            Open the studio. Drop a product photo. Show us the vibe. We'll
-            handle the rest — and you'll know exactly why every decision was
-            made.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link to="/studio" className="inline-flex items-center gap-2 rounded-full bg-lime px-6 py-3.5 text-sm font-medium text-ink shadow-glow transition-all hover:opacity-90">
-              Open the studio <ArrowRight className="size-4" />
-            </Link>
-          </div>
-        </div>
-      </div>
+      <p className="mt-8 text-sm text-muted-foreground">
+        Live demo:{" "}
+        <Link to="/studio" className="text-ink underline decoration-border underline-offset-4 hover:text-violet">
+          open Campaign Studio
+        </Link>{" "}
+        to run the full upload → brief → variant flow.
+      </p>
     </section>
   );
 }
