@@ -26,6 +26,8 @@ export type AiTextRequest = {
 export type AiImageRequest = {
   operation: string;
   prompt: string;
+  /** Product photo URLs first, then reference/style URLs — passed to image-edit APIs. */
+  images?: string[];
 };
 
 /** Internal metadata attached to every successful gateway response. */

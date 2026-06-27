@@ -6,7 +6,7 @@ import { APICallError } from "@ai-sdk/provider";
 import { classifyAiError } from "./errors.ts";
 import { createMockProvider } from "./providers/mock.ts";
 import { createProviderRegistry, listAvailableProviders } from "./providers/index.ts";
-import { toSdkMessages } from "./providers/utils.ts";
+import { toSdkMessages, toGenerateImagePrompt } from "./providers/utils.ts";
 import { loadAiGatewayConfig } from "./config.ts";
 
 describe("toSdkMessages", () => {
@@ -30,6 +30,18 @@ describe("toSdkMessages", () => {
       { type: "text", text: "describe this" },
       { type: "image", image: "https://example.com/photo.jpg" },
     ]);
+  });
+
+  it("maps image requests with reference URLs to multimodal prompts", () => {
+    const prompt = toGenerateImagePrompt({
+      operation: "generateVariants.image",
+      prompt: "hero shot on rocks",
+      images: ["https://example.com/product.jpg", "https://example.com/ref.jpg"],
+    });
+    assert.deepEqual(prompt, {
+      images: ["https://example.com/product.jpg", "https://example.com/ref.jpg"],
+      text: "hero shot on rocks",
+    });
   });
 });
 

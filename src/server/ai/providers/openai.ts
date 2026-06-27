@@ -3,7 +3,12 @@ import { generateImage, generateText } from "ai";
 
 import type { AiImageRequest, AiTextRequest } from "../types";
 import type { AiProviderAdapter } from "./types";
-import { parseGeneratedImageFile, rethrowProviderError, toSdkMessages } from "./utils";
+import {
+  parseGeneratedImageFile,
+  rethrowProviderError,
+  toGenerateImagePrompt,
+  toSdkMessages,
+} from "./utils";
 
 export function createOpenAiProvider(apiKey: string): AiProviderAdapter {
   const openai = createOpenAI({ apiKey });
@@ -27,10 +32,15 @@ export function createOpenAiProvider(apiKey: string): AiProviderAdapter {
 
     async generateImage(request: AiImageRequest, model: string) {
       try {
+        const prompt = toGenerateImagePrompt(request);
+        const usesReferences = typeof prompt !== "string";
         const result = await generateImage({
           model: openai.image(model),
-          prompt: request.prompt,
+          prompt,
           maxRetries: 0,
+          providerOptions: usesReferences
+            ? { openai: { inputFidelity: "high" as const } }
+            : undefined,
         });
         return parseGeneratedImageFile(result.image);
       } catch (error) {

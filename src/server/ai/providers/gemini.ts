@@ -3,7 +3,12 @@ import { generateImage, generateText } from "ai";
 
 import type { AiImageRequest, AiTextRequest } from "../types";
 import type { AiProviderAdapter } from "./types";
-import { parseGeneratedImageFile, rethrowProviderError, toSdkMessages } from "./utils";
+import {
+  parseGeneratedImageFile,
+  rethrowProviderError,
+  toGenerateImagePrompt,
+  toSdkMessages,
+} from "./utils";
 
 export function createGeminiProvider(apiKey: string): AiProviderAdapter {
   const google = createGoogleGenerativeAI({ apiKey });
@@ -29,7 +34,7 @@ export function createGeminiProvider(apiKey: string): AiProviderAdapter {
       try {
         const result = await generateImage({
           model: google.image(model),
-          prompt: request.prompt,
+          prompt: toGenerateImagePrompt(request),
           maxRetries: 0,
         });
         return parseGeneratedImageFile(result.image);

@@ -2,7 +2,7 @@ import { APICallError } from "@ai-sdk/provider";
 import type { ModelMessage } from "ai";
 
 import { AiGatewayError } from "../errors";
-import type { AiContentPart, AiMessage } from "../types";
+import type { AiContentPart, AiImageRequest, AiMessage } from "../types";
 
 /** Normalize SDK / fetch errors so `classifyAiError` can read status codes. */
 export function normalizeProviderError(error: unknown): unknown {
@@ -40,6 +40,15 @@ type GeneratedImageFile = {
   base64: string;
   mediaType: string;
 };
+
+/** Map gateway image requests to AI SDK prompt shape (text-only or multimodal edit). */
+export function toGenerateImagePrompt(
+  request: AiImageRequest,
+): string | { images: string[]; text: string } {
+  const urls = request.images?.filter((url) => url.trim().length > 0) ?? [];
+  if (urls.length === 0) return request.prompt;
+  return { images: urls, text: request.prompt };
+}
 
 /** Extract base64 + mime from Vercel AI SDK `generateImage` output. */
 export function parseGeneratedImageFile(file: GeneratedImageFile): { b64: string; mime: string } {
