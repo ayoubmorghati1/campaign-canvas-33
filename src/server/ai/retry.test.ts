@@ -10,9 +10,18 @@ describe("loadAiGatewayConfig", () => {
     const config = loadAiGatewayConfig({});
     assert.equal(config.primary, "openai");
     assert.deepEqual(config.providerOrder, ["openai", "gemini"]);
+    assert.deepEqual(config.imageProviderOrder, ["gemini", "openai"]);
     assert.equal(config.maxRetries, 3);
     assert.equal(config.retryBaseMs, 500);
     assert.equal(config.mock, false);
+  });
+
+  it("allows separate image provider primary", () => {
+    const config = loadAiGatewayConfig({
+      AI_GATEWAY_PRIMARY: "openai",
+      AI_GATEWAY_IMAGE_PRIMARY: "openai",
+    });
+    assert.deepEqual(config.imageProviderOrder, ["openai", "gemini"]);
   });
 
   it("respects gemini primary and env overrides", () => {

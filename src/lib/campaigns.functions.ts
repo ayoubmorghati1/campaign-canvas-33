@@ -255,6 +255,25 @@ type CampaignImageContext = {
   referenceStyleHint: string;
 };
 
+type ImageGenOptions = {
+  context?: CampaignImageContext;
+  aspectRatio?: import("@/server/ai").AiImageAspectRatio;
+  /** Rendered variant/scene to preserve (reframe) — prepended before product refs. */
+  sceneImage?: string;
+};
+
+const PLATFORM_ASPECT_RATIO: Record<string, import("@/server/ai").AiImageAspectRatio> = {
+  "IG Feed": "1:1",
+  "IG Story": "9:16",
+  LinkedIn: "16:9",
+  X: "16:9",
+  Pinterest: "2:3",
+};
+
+function aspectForPlatform(platform: string): import("@/server/ai").AiImageAspectRatio {
+  return PLATFORM_ASPECT_RATIO[platform] ?? "1:1";
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
@@ -296,6 +315,33 @@ async function resolveAssetImage(
   return asset.public_url?.trim() || null;
 }
 
+async function resolveOutputImage(
+  sb: Awaited<ReturnType<typeof admin>>,
+  storagePath: string | null,
+  publicUrl: string | null,
+): Promise<string | null> {
+  if (storagePath) {
+    const { data, error } = await sb.storage.from("campaign-outputs").download(storagePath);
+    if (!error && data) {
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      return `data:image/png;base64,${bytesToBase64(bytes)}`;
+    }
+  }
+  if (publicUrl?.startsWith("http")) {
+    try {
+      const res = await fetch(publicUrl);
+      if (res.ok) {
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const mime = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "image/png";
+        return `data:${mime};base64,${bytesToBase64(bytes)}`;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return null;
+}
+
 async function loadCampaignImageContext(
   campaignId: string,
   brief?: BriefContext | null,
@@ -334,10 +380,16 @@ async function loadCampaignImageContext(
 function productAwareImagePrompt(
   scenePrompt: string,
   context: CampaignImageContext,
+  options?: { sceneImage?: string },
 ): string {
   const lines = [
+    options?.sceneImage
+      ? "CRITICAL: The FIRST attached image is the rendered campaign photo to reframe. Preserve its product, palette, lighting, and mood — only change composition/crop/aspect."
+      : "",
     context.productImages.length > 0
-      ? `CRITICAL: The attached image(s) show the exact PRODUCT for this campaign. Reproduce this product faithfully — same category, shape, color, material, and details. Do NOT substitute perfume, lipstick, unrelated fashion items, or a different product category.`
+      ? options?.sceneImage
+        ? "Additional attached images are product reference anchors — keep the same product visible."
+        : "CRITICAL: The attached image(s) show the exact PRODUCT for this campaign. Reproduce this product faithfully — same category, shape, color, material, and details. Do NOT substitute perfume, lipstick, unrelated fashion items, or a different product category."
       : "",
     context.productSummary
       ? `PRODUCT (from creative brief): ${context.productSummary}`
@@ -366,19 +418,28 @@ async function generateAiText(
 async function generateAiImage(
   operation: string,
   prompt: string,
-  context?: CampaignImageContext,
+  options?: ImageGenOptions,
 ): Promise<ImageGenResult> {
   const { getAiGateway, toUserFacingError } = await import("@/server/ai");
+  const context = options?.context;
+  const sceneImage = options?.sceneImage;
   const productImages = context?.productImages ?? [];
+  const images =
+    sceneImage && productImages.length > 0
+      ? [sceneImage, ...productImages]
+      : sceneImage
+        ? [sceneImage]
+        : productImages;
   const finalPrompt =
-    context && productImages.length > 0
-      ? productAwareImagePrompt(prompt, context)
+    context && images.length > 0
+      ? productAwareImagePrompt(prompt, context, { sceneImage })
       : prompt;
   try {
     const result = await getAiGateway().generateImage({
       operation,
       prompt: finalPrompt,
-      images: productImages.length > 0 ? productImages : undefined,
+      images: images.length > 0 ? images : undefined,
+      aspectRatio: options?.aspectRatio,
     });
     return { b64: result.b64, mime: result.mime };
   } catch (error) {
@@ -461,9 +522,9 @@ Return ONLY a JSON object (no prose, no markdown fences) with EXACTLY these keys
 async function generateImage(
   prompt: string,
   operation: string,
-  context?: CampaignImageContext,
+  options?: ImageGenOptions,
 ): Promise<ImageGenResult> {
-  return generateAiImage(operation, prompt, context);
+  return generateAiImage(operation, prompt, options);
 }
 
 async function uploadOutput(campaignId: string, b64: string, mime: string) {
@@ -563,6 +624,10 @@ MANDATORY RULES:
 - Every variant MUST feature that exact product as the hero — never perfume, lipstick, random sneakers, or unrelated categories.
 - Reference images are STYLE INSPIRATION ONLY (lighting, composition, mood) — do not copy their product.
 - Each prompt must describe a scene/staging for the attached product, not a different item.
+- BANNED: lifestyle shots where a person/model is the main subject and the product is absent or tiny.
+- BANNED: generating a different product category than what is shown in the product photo(s).
+- REQUIRED: the product must be clearly visible and occupy at least 40% of the frame in every variant.
+- Allowed directions: product still life, floating product hero, product on surface/props, close-up product editorial — always with the uploaded product as hero.
 
 TASK: Produce exactly ${platforms.length * directionsPerPlatform} variants — ${directionsPerPlatform} distinct directions per platform.
 For each variant return:
@@ -575,7 +640,7 @@ For each variant return:
 - why (2-4 short bullet phrases on why this works)
 - prompt (a detailed image-generation prompt describing ONLY the scene, composition, lighting, palette, framing, and props for the attached product — name the product's visible traits from the photo. Include platform aspect ratio guidance: ${Object.entries(PLATFORM_ASPECT).map(([p, a]) => `${p} = ${a}`).join("; ")}. Never include text overlays in the image.)
 
-Vary the directions meaningfully (e.g., editorial still life / lifestyle / abstract).
+Vary the directions meaningfully (editorial still life / floating hero / surface styling) — but ALWAYS the same uploaded product.
 
 Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
 { "variants": [ { "platform": string, "direction_label": string, "title": string, "mood_caption": string, "caption_body": string, "match_score": number, "why": [string, ...], "prompt": string } ] }`,
@@ -607,7 +672,10 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
     const created: Array<{ id: string }> = [];
     for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
       try {
-        const img = await generateImage(v.prompt, "generateVariants.image", imageContext);
+        const img = await generateImage(v.prompt, "generateVariants.image", {
+          context: imageContext,
+          aspectRatio: aspectForPlatform(v.platform),
+        });
         const { path, url } = await uploadOutput(data.id, img.b64, img.mime);
         const { data: row, error } = await sb
           .from("variants")
@@ -669,7 +737,10 @@ export const regenerateVariant = createServerFn({ method: "POST" })
       .eq("campaign_id", v.campaign_id)
       .maybeSingle();
     const imageContext = await loadCampaignImageContext(v.campaign_id, briefRow);
-    const img = await generateImage(prompt, "regenerateVariant", imageContext);
+    const img = await generateImage(prompt, "regenerateVariant", {
+      context: imageContext,
+      aspectRatio: aspectForPlatform(v.platform),
+    });
     const { path, url } = await uploadOutput(v.campaign_id, img.b64, img.mime);
     if (v.storage_path) await sb.storage.from("campaign-outputs").remove([v.storage_path]).catch(() => {});
     await sb
@@ -709,11 +780,13 @@ REFRAME for ${data.platform} — ${aspectGuide}. Preserve the subject, palette, 
       .select("goal, position, visual_direction, notes, references_dna")
       .eq("campaign_id", v.campaign_id)
       .maybeSingle();
-    const img = await generateImage(
-      prompt,
-      "reframeVariant",
-      await loadCampaignImageContext(v.campaign_id, briefRow),
-    );
+    const imageContext = await loadCampaignImageContext(v.campaign_id, briefRow);
+    const sceneImage = await resolveOutputImage(sb, v.storage_path, v.public_url);
+    const img = await generateImage(prompt, "reframeVariant", {
+      context: imageContext,
+      aspectRatio: data.aspect,
+      sceneImage: sceneImage ?? undefined,
+    });
     const { path, url } = await uploadOutput(v.campaign_id, img.b64, img.mime);
 
     const parentReasoning = (v.reasoning && typeof v.reasoning === "object" ? v.reasoning : {}) as Record<string, unknown>;

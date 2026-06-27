@@ -22,12 +22,17 @@ export type AiTextRequest = {
   messages: AiMessage[];
 };
 
+/** Supported output aspect ratios for image generation. */
+export type AiImageAspectRatio = "1:1" | "4:5" | "9:16" | "16:9" | "2:3";
+
 /** Normalized image-generation request consumed by the gateway facade. */
 export type AiImageRequest = {
   operation: string;
   prompt: string;
-  /** Product photo URLs or data URLs — only the product, for image-edit APIs. */
+  /** Product / scene photo URLs or data URLs for image-edit APIs. */
   images?: string[];
+  /** Target output aspect ratio — passed through to providers. */
+  aspectRatio?: AiImageAspectRatio;
 };
 
 /** Internal metadata attached to every successful gateway response. */
@@ -54,6 +59,8 @@ export type AiImageResult = {
 export type AiGatewayConfig = {
   primary: AiProviderId;
   providerOrder: AiProviderId[];
+  /** Failover order for image generation — defaults to Gemini first for reference-image fidelity. */
+  imageProviderOrder: AiProviderId[];
   maxRetries: number;
   retryBaseMs: number;
   mock: boolean;

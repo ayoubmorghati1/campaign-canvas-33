@@ -31,10 +31,18 @@ export function createProviderRegistry(config: AiGatewayConfig): Map<AiProviderI
   return registry;
 }
 
-/** Ordered list of providers that are configured and ready to serve traffic. */
+/** Ordered list of providers for text generation. */
 export function listAvailableProviders(config: AiGatewayConfig): AiProviderAdapter[] {
   const registry = createProviderRegistry(config);
   return config.providerOrder
+    .map((id) => registry.get(id))
+    .filter((provider): provider is AiProviderAdapter => provider !== undefined);
+}
+
+/** Ordered list of providers for image generation (Gemini-first by default). */
+export function listAvailableImageProviders(config: AiGatewayConfig): AiProviderAdapter[] {
+  const registry = createProviderRegistry(config);
+  return config.imageProviderOrder
     .map((id) => registry.get(id))
     .filter((provider): provider is AiProviderAdapter => provider !== undefined);
 }

@@ -27,11 +27,13 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 /** Load gateway configuration from environment variables. */
 export function loadAiGatewayConfig(env: NodeJS.ProcessEnv = process.env): AiGatewayConfig {
   const primary = parsePrimary(env.AI_GATEWAY_PRIMARY);
+  const imagePrimary = parsePrimary(env.AI_GATEWAY_IMAGE_PRIMARY ?? "gemini");
   const mock = env.AI_GATEWAY_MOCK === "true" || env.AI_GATEWAY_MOCK === "1";
 
   return {
     primary,
     providerOrder: providerOrder(primary),
+    imageProviderOrder: providerOrder(imagePrimary),
     maxRetries: parsePositiveInt(env.AI_GATEWAY_MAX_RETRIES, 3),
     retryBaseMs: parsePositiveInt(env.AI_GATEWAY_RETRY_BASE_MS, 500),
     mock,

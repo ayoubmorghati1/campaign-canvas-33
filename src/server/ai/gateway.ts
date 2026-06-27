@@ -1,6 +1,6 @@
 import type { AiGatewayConfig, AiImageRequest, AiImageResult, AiProviderId, AiResultMeta, AiTextRequest, AiTextResult } from "./types";
 import { loadAiGatewayConfig } from "./config";
-import { listAvailableProviders } from "./providers";
+import { listAvailableImageProviders, listAvailableProviders } from "./providers";
 import type { AiProviderAdapter } from "./providers/types";
 import { AiGatewayError, classifyAiError, toUserFacingError } from "./errors";
 import { createOperationLogger, type AiLogger } from "./logger";
@@ -205,7 +205,8 @@ export function createAiGateway(
   config: AiGatewayConfig,
   options: CreateAiGatewayOptions = {},
 ): AiGateway {
-  const providers = options.providers ?? listAvailableProviders(config);
+  const textProviders = options.providers ?? listAvailableProviders(config);
+  const imageProviders = options.providers ?? listAvailableImageProviders(config);
 
   return {
     async generateText(request: AiTextRequest): Promise<AiTextResult> {
@@ -215,7 +216,7 @@ export function createAiGateway(
         capability: "text",
         request,
         config,
-        providers,
+        providers: textProviders,
         logger,
         modelFor: (providerId) => config.models.text[providerId],
         invoke: (provider, model) => provider.generateText(request, model),
@@ -232,7 +233,7 @@ export function createAiGateway(
         capability: "image",
         request,
         config,
-        providers,
+        providers: imageProviders,
         logger,
         modelFor: (providerId) => config.models.image[providerId],
         invoke: (provider, model) => provider.generateImage(request, model),

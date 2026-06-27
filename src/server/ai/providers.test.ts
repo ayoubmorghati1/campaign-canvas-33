@@ -5,7 +5,7 @@ import { APICallError } from "@ai-sdk/provider";
 
 import { classifyAiError } from "./errors.ts";
 import { createMockProvider } from "./providers/mock.ts";
-import { createProviderRegistry, listAvailableProviders } from "./providers/index.ts";
+import { createProviderRegistry, listAvailableImageProviders, listAvailableProviders } from "./providers/index.ts";
 import { toSdkMessages, toGenerateImagePrompt } from "./providers/utils.ts";
 import { loadAiGatewayConfig } from "./config.ts";
 
@@ -88,6 +88,15 @@ describe("createProviderRegistry", () => {
       AI_GATEWAY_PRIMARY: "gemini",
     });
     const providers = listAvailableProviders(config);
+    assert.deepEqual(
+      providers.map((p) => p.id),
+      ["gemini", "openai"],
+    );
+  });
+
+  it("lists image providers gemini-first by default", () => {
+    const config = loadAiGatewayConfig({ AI_GATEWAY_MOCK: "true" });
+    const providers = listAvailableImageProviders(config);
     assert.deepEqual(
       providers.map((p) => p.id),
       ["gemini", "openai"],

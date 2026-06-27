@@ -2,6 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateImage, generateText } from "ai";
 
 import type { AiImageRequest, AiTextRequest } from "../types";
+import { imageDimensionsForAspect } from "../image-dimensions";
 import type { AiProviderAdapter } from "./types";
 import {
   parseGeneratedImageFile,
@@ -34,10 +35,14 @@ export function createOpenAiProvider(apiKey: string): AiProviderAdapter {
       try {
         const prompt = toGenerateImagePrompt(request);
         const usesReferences = typeof prompt !== "string";
+        const dimensions = request.aspectRatio
+          ? imageDimensionsForAspect(request.aspectRatio)
+          : undefined;
         const result = await generateImage({
           model: openai.image(model),
           prompt,
           maxRetries: 0,
+          size: dimensions?.size,
           providerOptions: usesReferences
             ? { openai: { inputFidelity: "high" as const } }
             : undefined,

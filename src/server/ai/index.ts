@@ -1,5 +1,6 @@
-export type { AiGatewayConfig, AiContentPart, AiImageRequest, AiImageResult, AiMessage, AiProviderId, AiResultMeta, AiTextRequest, AiTextResult } from "./types";
+export type { AiGatewayConfig, AiContentPart, AiImageAspectRatio, AiImageRequest, AiImageResult, AiMessage, AiProviderId, AiResultMeta, AiTextRequest, AiTextResult } from "./types";
 export { isProviderConfigured, loadAiGatewayConfig } from "./config";
+export { imageDimensionsForAspect } from "./image-dimensions";
 export { AiGatewayError, classifyAiError, toUserFacingError, type AiErrorClass, type ClassifiedAiError } from "./errors";
 export { aiLogger, createAiLogger, createOperationLogger, type AiLogEvent, type AiLogPayload } from "./logger";
 export {
@@ -14,6 +15,7 @@ export {
   createMockProvider,
   createOpenAiProvider,
   createProviderRegistry,
+  listAvailableImageProviders,
   listAvailableProviders,
   normalizeProviderError,
   parseGeneratedImageFile,
