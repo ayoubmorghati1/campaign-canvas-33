@@ -59,7 +59,7 @@ export type AiImageResult = {
 export type AiGatewayConfig = {
   primary: AiProviderId;
   providerOrder: AiProviderId[];
-  /** Failover order for image generation — defaults to Gemini first for reference-image fidelity. */
+  /** Failover order for image generation — defaults to OpenAI first, Gemini fallback. */
   imageProviderOrder: AiProviderId[];
   maxRetries: number;
   retryBaseMs: number;

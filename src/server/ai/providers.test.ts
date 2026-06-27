@@ -94,12 +94,12 @@ describe("createProviderRegistry", () => {
     );
   });
 
-  it("lists image providers gemini-first by default", () => {
+  it("lists image providers openai-first by default", () => {
     const config = loadAiGatewayConfig({ AI_GATEWAY_MOCK: "true" });
     const providers = listAvailableImageProviders(config);
     assert.deepEqual(
       providers.map((p) => p.id),
-      ["gemini", "openai"],
+      ["openai", "gemini"],
     );
   });
 });

@@ -27,7 +27,7 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 /** Load gateway configuration from environment variables. */
 export function loadAiGatewayConfig(env: NodeJS.ProcessEnv = process.env): AiGatewayConfig {
   const primary = parsePrimary(env.AI_GATEWAY_PRIMARY);
-  const imagePrimary = parsePrimary(env.AI_GATEWAY_IMAGE_PRIMARY ?? "gemini");
+  const imagePrimary = parsePrimary(env.AI_GATEWAY_IMAGE_PRIMARY ?? "openai");
   const mock = env.AI_GATEWAY_MOCK === "true" || env.AI_GATEWAY_MOCK === "1";
 
   return {
