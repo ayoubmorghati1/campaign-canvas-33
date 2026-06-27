@@ -677,7 +677,10 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
     const meta = metaResult.data;
 
     const created: Array<{ id: string }> = [];
-    for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
+    const failures: string[] = [];
+    const plannedVariants = meta.variants.slice(0, platforms.length * directionsPerPlatform);
+    for (let i = 0; i < plannedVariants.length; i++) {
+      const v = plannedVariants[i]!;
       try {
         const img = await generateImage(v.prompt, "generateVariants.image", {
           context: imageContext,
@@ -704,7 +707,9 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
         if (!error && row) created.push({ id: row.id });
       } catch (err) {
         console.error("variant gen failed", err);
+        failures.push(err instanceof Error ? err.message : String(err));
       }
+      if (i < plannedVariants.length - 1) await sleep(1200);
     }
 
     if (created.length > 0) {
@@ -720,8 +725,19 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
       }
     }
 
+    if (created.length === 0) {
+      await sb.from("campaigns").update({ status: "draft" }).eq("id", data.id);
+      const reason = failures[0] ?? "No variants were generated.";
+      throw new Error(`No variants were generated. ${reason}`);
+    }
+
     await sb.from("campaigns").update({ status: "ready" }).eq("id", data.id);
-    return { count: created.length };
+    return {
+      count: created.length,
+      planned: plannedVariants.length,
+      failed: failures.length,
+      sample_error: failures[0],
+    };
   });
 
 export const regenerateVariant = createServerFn({ method: "POST" })
