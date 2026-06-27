@@ -228,6 +228,30 @@ function extractJSON(raw: string): unknown {
   return JSON.parse(s);
 }
 
+type ImageGenResult = { b64: string; mime: string };
+
+async function generateAiText(
+  request: import("@/server/ai").AiTextRequest,
+): Promise<string> {
+  const { getAiGateway, toUserFacingError } = await import("@/server/ai");
+  try {
+    const result = await getAiGateway().generateText(request);
+    return result.text;
+  } catch (error) {
+    throw toUserFacingError(error);
+  }
+}
+
+async function generateAiImage(operation: string, prompt: string): Promise<ImageGenResult> {
+  const { getAiGateway, toUserFacingError } = await import("@/server/ai");
+  try {
+    const result = await getAiGateway().generateImage({ operation, prompt });
+    return { b64: result.b64, mime: result.mime };
+  } catch (error) {
+    throw toUserFacingError(error);
+  }
+}
+
 export const analyzeCampaign = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => IdInput.parse(d))
   .handler(async ({ data }) => {
@@ -242,10 +266,6 @@ export const analyzeCampaign = createServerFn({ method: "POST" })
     }
 
     await sb.from("campaigns").update({ status: "analyzing" }).eq("id", data.id);
-
-    const { generateText } = await import("ai");
-    const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(gatewayKey());
 
     const products = assets.filter((a) => a.kind === "product").slice(0, 4);
     const refs = assets.filter((a) => a.kind === "reference").slice(0, 8);
@@ -277,8 +297,8 @@ Return ONLY a JSON object (no prose, no markdown fences) with EXACTLY these keys
       ...refs.map((r) => ({ type: "image" as const, image: r.public_url })),
     ];
 
-    const { text } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    const text = await generateAiText({
+      operation: "analyzeCampaign",
       messages: [{ role: "user", content: userParts }],
     });
 
@@ -304,44 +324,8 @@ Return ONLY a JSON object (no prose, no markdown fences) with EXACTLY these keys
 
 /* ----------------------------- AI: Image generation ----------------------------- */
 
-type ImageGenResult = { b64: string; mime: string };
-
-async function generateImage(prompt: string): Promise<ImageGenResult> {
-  const { gatewayKey } = await import("./ai-gateway.server");
-  const key = gatewayKey();
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Lovable-API-Key": key,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-image",
-      messages: [{ role: "user", content: prompt }],
-      modalities: ["image", "text"],
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("Rate limited by AI gateway. Wait a moment and try again.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in workspace settings.");
-    throw new Error(`Image generation failed (${res.status}): ${txt.slice(0, 200)}`);
-  }
-  const json = (await res.json()) as {
-    choices?: Array<{
-      message?: {
-        images?: Array<{ image_url?: { url?: string } }>;
-        content?: string;
-      };
-    }>;
-  };
-  const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-  if (!dataUrl || !dataUrl.startsWith("data:")) {
-    throw new Error("Image generation returned no image data.");
-  }
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) throw new Error("Unexpected image data format from gateway.");
-  return { b64: match[2], mime: match[1] || "image/png" };
+async function generateImage(prompt: string, operation: string): Promise<ImageGenResult> {
+  return generateAiImage(operation, prompt);
 }
 
 async function uploadOutput(campaignId: string, b64: string, mime: string) {
@@ -409,15 +393,11 @@ export const generateVariants = createServerFn({ method: "POST" })
     const platforms: string[] = (campaign.platforms ?? ["IG Feed"]).slice(0, 4);
     const directionsPerPlatform = 3;
 
-    const { generateText } = await import("ai");
-    const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(gatewayKey());
-
     const refCount = assets.filter((a) => a.kind === "reference").length;
     const productCount = assets.filter((a) => a.kind === "product").length;
 
-    const { text: metaText } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    const metaText = await generateAiText({
+      operation: "generateVariants",
       messages: [
         {
           role: "user",
@@ -473,7 +453,7 @@ Return ONLY a JSON object (no prose, no markdown fences) shaped exactly:
     const created: Array<{ id: string }> = [];
     for (const v of meta.variants.slice(0, platforms.length * directionsPerPlatform)) {
       try {
-        const img = await generateImage(v.prompt);
+        const img = await generateImage(v.prompt, "generateVariants.image");
         const { path, url } = await uploadOutput(data.id, img.b64, img.mime);
         const { data: row, error } = await sb
           .from("variants")
@@ -529,7 +509,7 @@ export const regenerateVariant = createServerFn({ method: "POST" })
       ? `\n\nADDITIONAL DIRECTION: ${data.instruction.trim()}`
       : "";
     const prompt = `${v.prompt}${tweak}`;
-    const img = await generateImage(prompt);
+    const img = await generateImage(prompt, "regenerateVariant");
     const { path, url } = await uploadOutput(v.campaign_id, img.b64, img.mime);
     if (v.storage_path) await sb.storage.from("campaign-outputs").remove([v.storage_path]).catch(() => {});
     await sb
@@ -564,7 +544,7 @@ export const reframeVariant = createServerFn({ method: "POST" })
 
 REFRAME for ${data.platform} — ${aspectGuide}. Preserve the subject, palette, mood and lighting from the original; recompose the framing, crop and negative space to feel native to ${data.platform}. Keep the product the clear focal point. No text overlays.`;
 
-    const img = await generateImage(prompt);
+    const img = await generateImage(prompt, "reframeVariant");
     const { path, url } = await uploadOutput(v.campaign_id, img.b64, img.mime);
 
     const parentReasoning = (v.reasoning && typeof v.reasoning === "object" ? v.reasoning : {}) as Record<string, unknown>;
@@ -630,10 +610,6 @@ export const directorChat = createServerFn({ method: "POST" })
       .from("director_messages")
       .insert({ campaign_id: data.campaignId, role: "user", content: data.message });
 
-    const { generateText } = await import("ai");
-    const { createLovableAiGatewayProvider, gatewayKey } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(gatewayKey());
-
     const systemPrompt = `You are the Creative Director inside Campaign Studio — opinionated, warm, concise.
 You respond in short paragraphs (2-5 sentences) with confident creative direction.
 You do NOT generate images here; you guide the human and suggest what to regenerate.
@@ -649,8 +625,8 @@ ${brief ? `BRIEF
 - Visual direction: ${brief.visual_direction}` : "(no brief yet)"}
 ${variants.length ? `CURRENT VARIANTS: ${variants.map((v) => `${v.title} (${v.platform}, ${v.match_score}%)`).join(" · ")}` : ""}`;
 
-    const { text } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
+    const text = await generateAiText({
+      operation: "directorChat",
       system: systemPrompt,
       messages: [
         ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
