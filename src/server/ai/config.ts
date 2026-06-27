@@ -6,7 +6,7 @@ const DEFAULT_TEXT_MODELS: Record<AiProviderId, string> = {
 };
 
 const DEFAULT_IMAGE_MODELS: Record<AiProviderId, string> = {
-  openai: "gpt-image-1",
+  openai: "gpt-image-2",
   gemini: "gemini-2.5-flash-image",
 };
 
