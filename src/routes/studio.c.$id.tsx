@@ -92,7 +92,17 @@ export function CampaignWorkspace() {
 
   const regen = useMutation({
     mutationFn: () => generateVariants({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaign", id] }),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["campaign", id] });
+      const r = result as { count?: number; failed?: number; sample_error?: string } | undefined;
+      if (r?.failed && r.failed > 0) {
+        toast.warning(
+          `${r.count} of ${(r.count ?? 0) + r.failed} variants generated. ${r.sample_error ?? ""}`.trim(),
+        );
+      } else if (r?.count) {
+        toast.success(`${r.count} variants ready`);
+      }
+    },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
